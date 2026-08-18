@@ -1,0 +1,10 @@
+{
+  "name": "agent-skills",
+  "private": true,
+  "scripts": {
+    "check": "node scripts/validate-skills.mjs",
+    "skill:init": "cd skills && npx skills@latest init",
+    "skills:list": "npx skills@latest add . --list"
+  }
+}
+
