@@ -1,0 +1,6 @@
+interface:
+  display_name: "To Spec"
+  short_description: "Turn context into a publishable specification"
+  default_prompt: "Use $to-spec to synthesize our discussion into a project specification."
+policy:
+  allow_implicit_invocation: false

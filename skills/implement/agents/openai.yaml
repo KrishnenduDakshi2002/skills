@@ -1,0 +1,6 @@
+interface:
+  display_name: "Implement"
+  short_description: "Implement work from specifications or tickets"
+  default_prompt: "Use $implement to complete the specified work and verify the result."
+policy:
+  allow_implicit_invocation: false

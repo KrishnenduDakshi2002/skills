@@ -8,6 +8,7 @@ A curated collection of portable agent skills for Claude Code, Codex, and other 
 skills/
   <skill-name>/
     SKILL.md
+    agents/openai.yaml   # optional Codex UI and invocation metadata
     scripts/             # optional deterministic helpers
     references/          # optional on-demand context
     assets/              # optional output resources
@@ -21,6 +22,8 @@ Keep each skill self-contained. Do not place installation instructions, changelo
 ## Portability baseline
 
 - Use only `name` and `description` in `SKILL.md` frontmatter by default.
+- For manually invoked workflows that target Claude Code, use `disable-model-invocation: true` and pair it with `policy.allow_implicit_invocation: false` in `agents/openai.yaml` for Codex. This is the collection's approved cross-agent frontmatter exception.
+- Keep product-specific metadata under `agents/` so agents that do not understand it can ignore it without changing the shared skill.
 - Avoid fixed assumptions about an agent's tool names, permission model, slash commands, hooks, or subagent support.
 - Describe required capabilities in plain language and let the active agent select its available tools.
 - Put unavoidable agent-specific guidance in a directly linked file such as `references/claude-code.md` or `references/codex.md`, and tell the agent when to read it.
@@ -56,6 +59,8 @@ Run the local structural checks:
 npm run check
 ```
 
+This also checks that explicit-only workflows are protected consistently in Claude Code and Codex and that every selectively installed skill carries a license.
+
 Ask the Vercel Skills CLI to discover the collection:
 
 ```bash
@@ -84,4 +89,4 @@ npx skills@latest add <owner>/<repository> --skill my-skill
 
 ## Licensing
 
-Choose a license for original work before publishing this repository. Third-party skills remain subject to their upstream licenses and notices.
+Choose a license for original work before publishing this repository. Third-party skills remain subject to their upstream licenses and notices. Each adapted skill carries its required upstream license so selective installations preserve attribution.

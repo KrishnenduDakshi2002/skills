@@ -66,13 +66,14 @@ for (const file of skillFiles) {
 
   const name = findField(frontmatter, "name");
   const description = findField(frontmatter, "description");
-  const folderName = path.basename(path.dirname(file));
+  const skillDirectory = path.dirname(file);
+  const folderName = path.basename(skillDirectory);
   const topLevelFields = frontmatter
     .filter((line) => /^[a-zA-Z0-9_-]+\s*:/.test(line))
     .map((line) => line.slice(0, line.indexOf(":")).trim());
-  const agentSpecificFields = topLevelFields.filter(
-    (field) => field !== "name" && field !== "description",
-  );
+  const reviewedFields = new Set(["name", "description", "disable-model-invocation"]);
+  const agentSpecificFields = topLevelFields.filter((field) => !reviewedFields.has(field));
+  const disableModelInvocation = findField(frontmatter, "disable-model-invocation");
 
   if (!name) {
     errors.push(`${relativeFile}: missing frontmatter name`);
@@ -98,6 +99,33 @@ for (const file of skillFiles) {
     warnings.push(
       `${relativeFile}: verify portability of frontmatter field(s): ${agentSpecificFields.join(", ")}`,
     );
+  }
+
+  if (disableModelInvocation && disableModelInvocation !== "true") {
+    warnings.push(
+      `${relativeFile}: disable-model-invocation should be true when the Claude Code exception is used`,
+    );
+  }
+
+  let openaiMetadata = "";
+  try {
+    openaiMetadata = await readFile(path.join(skillDirectory, "agents", "openai.yaml"), "utf8");
+  } catch {
+    // Product-specific metadata is optional unless invocation policy requires it.
+  }
+
+  const codexExplicitOnly = /^\s*allow_implicit_invocation:\s*false\s*$/m.test(openaiMetadata);
+  const claudeExplicitOnly = disableModelInvocation === "true";
+  if (claudeExplicitOnly !== codexExplicitOnly) {
+    errors.push(
+      `${relativeFile}: explicit-only workflows must pair Claude Code disable-model-invocation with Codex allow_implicit_invocation: false`,
+    );
+  }
+
+  try {
+    await readFile(path.join(skillDirectory, "LICENSE"), "utf8");
+  } catch {
+    errors.push(`${relativeFile}: missing LICENSE carried with selective installations`);
   }
 
   const lineCount = content.split(/\r?\n/).length;
