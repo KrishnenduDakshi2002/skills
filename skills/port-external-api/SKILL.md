@@ -130,7 +130,7 @@ python3 <skill-directory>/scripts/port_packet.py check <packet-path> --stage des
 python3 <skill-directory>/scripts/port_packet.py check <packet-path> --stage implementation
 ```
 
-Stop at `IMPLEMENTED`. Preserve the packet, pins, ledgers, examples, and unresolved runtime risks for the later testing or audit workflow; do not invoke those workflows automatically.
+Stop at `IMPLEMENTED`. Preserve the packet, pins, ledgers, examples, and unresolved runtime risks for `test-external-api-port` (runtime verification and the only workflow allowed to set `VERIFIED`) or `audit-external-api-port`; do not invoke either automatically.
 
 ## Handoff
 
