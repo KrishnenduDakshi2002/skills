@@ -166,6 +166,13 @@ def token_env_status() -> dict:
     return {name: bool(os.environ.get(name)) for name in (LEGACY_TOKEN_ENV, CORE_TOKEN_ENV)}
 
 
+def masked(value: str) -> str:
+    value = value.strip()
+    if len(value) <= 10:
+        return value
+    return f"{value[:4]}…{value[-4:]}"
+
+
 def cmd_check(args: argparse.Namespace) -> int:
     path, data = load(args.repo)
     missing = missing_fields(data)
@@ -181,7 +188,7 @@ def cmd_check(args: argparse.Namespace) -> int:
     print(f"ENVIRONMENT READY ({path})")
     for section, key, _kind, _question, redact in FIELDS:
         value = data.get(section, {}).get(key, "")
-        shown = "<set>" if redact else value
+        shown = masked(str(value)) if redact else value
         suffix = f"  [{host_kind(str(value))}]" if section == "hosts" else ""
         print(f"  {section}.{key} = {shown}{suffix}")
     print("Fixed policy (not configurable):")
@@ -209,7 +216,7 @@ def cmd_set(args: argparse.Namespace) -> int:
     data.setdefault(section, {})[key] = value
     data.setdefault("provenance", {})[key] = "user"
     path.write_text(render_config(data), encoding="utf-8")
-    shown = "<set>" if (section, key) == ("auth", "external_api_key") else value
+    shown = masked(value) if (section, key) == ("auth", "external_api_key") else value
     print(f"Recorded {section}.{key} = {shown}")
     return 0
 
