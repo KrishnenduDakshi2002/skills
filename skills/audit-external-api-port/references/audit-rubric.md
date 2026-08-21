@@ -34,7 +34,7 @@ Review the entire decision path:
 
 | Area | Questions |
 |---|---|
-| Defaults | Are schema, service, and frontend-derived defaults preserved? Does the server expose/appply them intentionally? |
+| Defaults | Are schema, service, and frontend-derived defaults preserved? Does the server expose/apply them intentionally? |
 | Gates | Are feature access, tier, permission, quota, status, ownership, and tenant gates preserved? |
 | Validation | Are scalar, cross-field, related-resource, and state-dependent rules preserved and backend-enforced? |
 | Persistence | Are stored fields, omissions, clearing semantics, timestamps, indexes, and hooks equivalent? |
@@ -142,9 +142,10 @@ Require clear ownership:
 
 ```text
 legacy route during transition ----\
-current/future core controller -----+-> libs/services canonical use case -> libs/repository
-external controller ----------------/                                  -> provider adapters
-        |-> explicit external mapper
+current/future core controller -----+-> libs/services canonical use case
+external controller ----------------/       -> libs/repository
+        |                                    -> provider/queue/file adapters
+        -> explicit external mapper / DTO
 ```
 
 Require new or extracted business logic under `libs/services/src/lib/<domain>/` and new data access under `libs/repository/src/repositories/<domain>/`. The use case must be complete for the scoped legacy capability even when the external API exposes only a subset. Equivalent current core/internal and external endpoints must call it while keeping their DTOs and response mappers separate.

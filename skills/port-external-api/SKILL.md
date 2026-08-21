@@ -1,215 +1,125 @@
 ---
 name: port-external-api
-description: Start from a linked GitHub issue, grill and resolve the consumer-facing contract, then research, design, implement, document, and hand off a TagMango external API port from apps/api or apps/core-api. Preserve business behavior, promote confirmed frontend rules into backend validation, place capability-complete business logic in libs/services and data access in libs/repository, and make external plus current or future core controllers thin adapters over the same use case so core-api can later replace legacy routes without reimplementing domain logic. Use when asked to port, migrate, expose, create, or redesign an external endpoint or prepare its parity and contract packet. Do not create or modify test cases as part of this skill; preserve implementation traceability for a separate testing workflow. Do not use for review-only requests; use audit-external-api-port.
+description: Port a TagMango endpoint from apps/api or apps/core-api to the external API surface, driven by a linked GitHub issue. Grills the public contract, preserves legacy behavior, and lands the capability-complete use case in libs/services with data access in libs/repository so core-api can later replace the legacy route. Produces an implementation handoff; never writes tests. For review-only requests use audit-external-api-port.
+argument-hint: <github-issue-url>
+disable-model-invocation: true
 ---
 
 # Port External API
 
-Port behavior, not legacy representation. Preserve the complete business decision path while designing a deliberate public contract that an unfamiliar integrator can understand and use safely.
+Port behavior, not legacy representation: preserve the complete business decision path while designing a deliberate public contract that an unfamiliar integrator can use safely.
 
-## Non-negotiable outcomes
+## The shared-capability rule
 
-Satisfy and document all five outcomes independently:
+Every port lands one transport-neutral use case in `libs/services/src/lib/<domain>/` with typed data access in `libs/repository/src/repositories/<domain>/`. The external controller and every equivalent current core controller are thin adapters over that use case: each parses its own DTOs, authenticates, calls the shared use case, and maps the domain result to its own response contract.
 
-1. **Behavioral fidelity:** preserve confirmed defaults, eligibility rules, validation, state transitions, persistence, side effects, error cases, ordering, transaction boundaries, and absent/null/false/zero/empty semantics from the authoritative sources.
-2. **Public-contract quality:** deliberately design the URL, method, authentication, parameters, request body, response, errors, examples, naming, and documentation for external consumers. Do not expose an internal DTO or database document merely because it already exists.
-3. **Shared domain ownership:** place ported business rules and use-case orchestration in `libs/services`; place new typed persistence/query code in `libs/repository`. Keep app modules as transport, authentication, wiring, and contract adapters.
-4. **No duplicated capability:** route external plus every equivalent current core/internal API through the same transport-independent shared use case and repositories. Preserve each transport's request/response contract with adapters and mappers.
-5. **Future core replacement readiness:** make the shared use case complete for the scoped legacy business capability, even when the external contract intentionally exposes only a subset. A future core replacement may add authentication, DTOs, mapping, and controller wiring, but must not need another business-logic or data-access port.
+The use case stays complete for the whole scoped legacy capability even when the external contract deliberately exposes a subset. The test for "complete": a future core controller could replace the legacy route by adding only authentication, DTOs, mapping, and wiring — never another business rule, repository query, state transition, or side-effect path. Never branch on `external` versus `core` inside domain code; express real permission or capability differences as domain context and injected policies. "Generic" means exactly this rule — not speculative TypeScript generics, a catch-all service, or configuration for imagined consumers.
 
-Promote confirmed business restrictions enforced only by the frontend into backend enforcement. Do not promote UI convenience, stale UI behavior, or accidental legacy behavior without evidence and a recorded decision. Treat "generic" as transport-neutral, capability-complete domain behavior with explicit dependencies—not speculative TypeScript generics, one oversized catch-all service, or configuration for imagined consumers.
+## Outcomes
 
-## Select the requested stopping point
+1. **Behavioral fidelity** — confirmed defaults, eligibility rules, validation, state transitions, persistence, side effects and their order, error cases, transaction boundaries, and absent/null/false/zero/empty semantics match the pinned sources.
+2. **Deliberate public contract** — URL, method, auth, parameters, bodies, responses, errors, and examples are designed for external consumers. Never expose an internal DTO or database document because it already exists.
+3. **The shared-capability rule**, satisfied and evidenced in the packet's `M-###` mapping.
 
-- Require a GitHub issue for every port. If it is missing or unreadable, request it and keep the packet `BLOCKED`.
-- For research or design requests, complete the issue intake, contract grill, and designed `M-###` core-migration mapping, then stop before product-code edits.
-- For full port requests, pause for the developer's contract confirmation. Continue only when the packet is `READY` and no material decisions remain open.
-- For implementation from an existing approved packet, verify that its source pins and assumptions are still current before editing.
-- For review-only requests, remain read-only and use `audit-external-api-port` instead.
+Promote a frontend-only restriction into backend enforcement only when evidence shows it is a business rule. Record a decision before promoting anything ambiguous; never promote UI convenience.
 
-## Scale across many endpoints
+## Stopping points
 
-For a batch, create a lightweight inventory with GitHub issue, operation, source route, target resource, consumer, source pins, shared service/repository dependencies, current/future core mapping, migration readiness, risk, packet path, and status. Group work by domain behavior rather than legacy controller file.
+- No readable GitHub issue → request it and keep the packet `BLOCKED`. Every port requires one.
+- Research or design request → stop after the grill and the designed `M-###` mapping, before any product-code edit.
+- Full port → pause for the developer's contract confirmation; implement only when the packet is `READY` and no material decision is open.
+- Implementing an already-approved packet → first re-verify its source pins and assumptions are still current.
+- Review-only request → wrong skill; use `audit-external-api-port`.
+- Never create, modify, or run tests. Existing tests are read-only source evidence; certification belongs to a separate testing workflow.
 
-- Research shared authentication, tenant, error, pagination, and domain policies once per pinned source snapshot; cite that evidence from each operation packet.
-- Keep one packet and implementation result per operation even when several endpoints share an implementation PR.
-- Order shared domain extraction before endpoint wiring, and foundational writes before dependent reads/actions.
-- Parallelize independent read-only discovery lanes when the active agent supports it, then make one owner reconcile evidence and decisions. Do not let parallel agents implement competing versions of the same domain rule.
-- Limit work in progress: finish the design gate for an operation before implementing it, and finish the implementation handoff before starting the next similar endpoint.
-- Promote only independently audited conventions into reusable templates. Do not multiply an unreviewed first port across the batch.
+## Batches
+
+For several endpoints, keep one inventory (issue, operation, source route, shared dependencies, readiness, packet path, status) and one packet per operation, grouped by domain capability rather than legacy controller file. Research shared auth/tenant/error/pagination policy once per source pin and cite it from each packet. Extract shared domain code before wiring endpoints, and finish an operation's design gate before implementing it. Parallel read-only research is fine; never let parallel agents implement competing versions of one domain rule, and never template an unaudited first port across the batch.
 
 ## Workflow
 
-### 1. Ingest the GitHub issue and establish authority
+### 1. Ingest the issue and pin authority
 
-Read repository instructions, coding standards, architecture maps, and the working-tree diff before searching broadly or editing. Preserve unrelated changes.
+Read repository instructions, coding standards, architecture maps, and the working-tree diff before searching broadly; preserve unrelated changes. Then read [issue-contract-grill.md](references/issue-contract-grill.md) and capture the live issue as `I-###` entries — it is scope and product intent, not proof of runtime behavior.
 
-Read [issue-contract-grill.md](references/issue-contract-grill.md). Read the linked GitHub issue and its current comments before broad source research. Treat it as the initial scope and product brief; verify its code and frontend pointers rather than treating them as runtime truth.
+Pin in the packet: the operation and consumer use case; target branch and external surface; every source repository at an exact commit; whether `apps/api`, `apps/core-api`, or both hold authoritative behavior; the user-designated `tagmango-web-platform` checkout; and the nearest current, intentional external-endpoint conventions. When several checkouts or branches exist, run `git log -1` and `git status` in each and choose by content; ask only if two checkouts implement different product decisions.
 
-Resolve and record:
-
-- the exact operation and consumer use case;
-- every `I-###` issue requirement, source pointer, frontend pointer, proposed contract, accepted decision, and exclusion;
-- the target branch and target external-API surface;
-- every source repository, checkout, branch, and commit;
-- whether `apps/api`, `apps/core-api`, or both contain authoritative behavior;
-- the user-designated `tagmango-web-platform` checkout for frontend gates, validation, defaults, and payload assembly;
-- the nearest existing external endpoints whose conventions are current and intentional.
-
-If multiple checkouts or branches exist, do not choose by name alone. Inspect their state and ask only when the authority cannot be established from repository or issue evidence.
-
-Read [behavior-parity.md](references/behavior-parity.md) before tracing the source. For TagMango work, also read [tagmango-implementation.md](references/tagmango-implementation.md) before selecting target files.
-
-### 2. Create the durable port packet
-
-Use the repository's established scratch/spec location. Otherwise default to `.scratch/external-api-ports/<operation-slug>/port-packet.md`; keep it uncommitted unless the user explicitly requests publication.
-
-Initialize from the bundled template:
+### 2. Create the packet
 
 ```sh
 python3 <skill-directory>/scripts/port_packet.py init \
-  --operation <operation-slug> \
-  --source <legacy|core-api|both> \
+  --operation <operation-slug> --source <legacy|core-api|both> \
   --issue <github-issue-url> \
-  --output <packet-path>
+  --output .scratch/external-api-ports/<operation-slug>/port-packet.md
 ```
 
-The script copies [port-packet.md](assets/port-packet.md). Maintain the packet while researching and implementing; do not reconstruct it at the end from memory.
+Use the repository's established scratch/spec location instead of `.scratch/` when one exists; keep the packet uncommitted unless the user requests publication. Update it while you work — never reconstruct it at the end from memory.
 
 ### 3. Reconstruct the complete behavior
 
-Trace every reachable layer, not only the controller:
+Read [behavior-parity.md](references/behavior-parity.md) and trace every backend layer and frontend flow listed in its §2 — route registration through side effects, form initialization through payload assembly — plus the downstream consumer of every caller-controlled URL, file reference, callback, redirect, or provider identifier.
 
-- route registration, middleware, authentication, tenant/host resolution, permissions, and ownership;
-- request validation and normalization;
-- controller, service, repository/query, schema defaults, hooks, and shared utilities;
-- feature flags, entitlements, quotas, idempotency, concurrency, transactions, external calls, queues, notifications, analytics, and other side effects;
-- frontend field initialization, conditional visibility, gates, cross-field validation, payload assembly, omitted/deleted fields, and success/failure handling;
-- existing tests, production-facing documentation, and sibling callers.
+Record each externally meaningful rule as a `B-###` row with a `repository@commit:path:line` anchor, and classify each frontend observation with the table in behavior-parity.md §4. Work breadth-first (map all layers and fields once), then risk-first (deepen public fields, cross-field rules, permissions, persistence, side effects). Research converges when every public input/output and material capability behavior has pinned evidence or a `D-###` decision; do not expand into unrelated domain behavior.
 
-Trace every caller-controlled URL, file reference, webhook destination, redirect, or provider identifier through downstream consumers. A value that looks like harmless metadata at the API boundary may become a server-side fetch, queue job, or privileged provider operation later.
+### 4. Draft the contract from the consumer inward
 
-Work breadth-first, then risk-first: map all layers and fields once, then deepen public fields plus every cross-field rule, permission, persistence effect, and side effect in the scoped canonical capability. Research converges when every public input/output and every material capability behavior has pinned evidence or a `D-###` decision; do not keep expanding into unrelated domain behavior.
+Read [public-contract-design.md](references/public-contract-design.md). Design the wire contract before implementation shapes: complete versioned URL, method, auth and tenant context, idempotency, every field's semantics, errors, pagination, and compatibility. The packet's `C-###`, `E-###`, and `X-###` tables define exactly what to record per parameter, field, error, and exposure decision.
 
-Record source evidence as `repository@commit:path:line` and assign every confirmed rule a stable `B-###` identifier. Distinguish verified facts from hypotheses.
+Add an `S-###` threat entry for each caller-controlled value that reaches a fetcher, queue, file/media processor, redirect, provider, bulk query, or cross-tenant lookup; record the implemented controls plus the risk the testing workflow must verify.
 
-Classify frontend observations as one of:
+Write the three consumer examples — minimal valid request, one important optional combination, one invalid combination with its exact error — before coding. If they need internal knowledge to interpret, redesign the contract.
 
-- business invariant to enforce on the backend;
-- product/entitlement gate to enforce on the backend;
-- normalization or default required for parity;
-- UI-only convenience that must not become an API restriction;
-- suspected bug or ambiguous behavior requiring a decision.
+### 5. Grill the contract (G-001–G-008)
 
-### 4. Draft the external contract from the consumer inward
+Follow the frontier discipline in [issue-contract-grill.md](references/issue-contract-grill.md). When the host can compose installed skills, load `grill-with-docs` for this bounded phase — invoking this skill is consent to be grilled; the reference is the self-contained fallback. Resolve or justify `N/A` for all eight `G-###` dimensions, and surface contradictions with settled issue decisions instead of silently overriding them.
 
-Read [public-contract-design.md](references/public-contract-design.md). Design the wire contract before choosing implementation shapes.
-
-Specify the actual versioned wire URL, HTTP method, auth and tenant context, idempotency/retry behavior, path/query/header/body fields, response groups, error codes, pagination, units, timestamp formats, nullability, defaults, examples, and compatibility strategy.
-
-For every request and response field, record:
-
-- public name and type;
-- precise meaning, units/format, requiredness, default, and absent/null/empty behavior;
-- source/domain mapping;
-- why an external consumer needs it;
-- sensitivity and exposure decision;
-- applicable `B-###` and `V-###` rules.
-
-Add an `S-###` threat/abuse entry for each caller-controlled value that reaches a fetcher, queue, file/media processor, redirect, provider, bulk query, or cross-tenant lookup. Record the implemented controls and the risk that a later testing workflow must verify, not only a proposed validation decorator.
-
-Draft three consumer examples before coding: the smallest valid request, one important optional combination, and one invalid combination with its exact error. If these examples require internal knowledge to interpret, redesign the contract.
-
-### 5. Grill and confirm the contract decisions
-
-Use the bounded `grill-with-docs` composition in [issue-contract-grill.md](references/issue-contract-grill.md). Discover facts first, construct a dependency-aware frontier from the draft, and ask all currently independent questions with evidence, realistic options, a recommendation, and concrete request/response examples.
-
-When the host supports composing installed skills, load `grill-with-docs` for this bounded phase; invoking `port-external-api` grants the required consent to be grilled, so do not require the developer to invoke both skills. Use the bundled reference as the complete fallback when composition is unavailable.
-
-Resolve or justify every `G-###` dimension: operation/resource boundary, complete URL and method, parameter placement, request fields, response shape/exposure, pagination and collection semantics, errors/retries/versioning, and capability-complete shared ownership for external plus current or future core adapters. Preserve settled issue decisions, but surface contradictions instead of silently overriding them.
-
-Before presenting each question round, checkpoint the issue intake, source pins, discovered behavior, draft contract options, and shared architecture plan in the packet; set its status to `BLOCKED`. Do not ask from private working notes while the durable packet still contains untouched template rows.
-
-Do not implement after merely proposing a reasonable contract. Wait for the developer to confirm the frontier is empty, record every resolution, and keep the packet `BLOCKED` while a material question remains.
+Before each question round, write the evidence, options, and recommendations into the packet rows and set status `BLOCKED`. Never present recommendations from private notes while the packet is an untouched template. Do not implement after merely proposing a reasonable contract — wait until the developer confirms the frontier is empty.
 
 ### 6. Resolve remaining behavioral decisions
 
-Investigate discoverable facts instead of asking the developer. In addition to the required public-contract grill, ask when two plausible answers would materially change business behavior, security, data exposure, or implementation scope.
-
-Use this format:
+Investigate discoverable facts yourself; ask only when two plausible answers materially change business behavior, security, data exposure, or scope. Do not label a missing fact as a product decision.
 
 ```text
 Q<D-###> — <decision>
-Evidence: <what each source currently does, with anchors>
+Evidence: <what each source does, with anchors>
 Why unresolved: <the contradiction or missing product rule>
 Recommended: <one option and rationale>
-Impact: <wire or behavior consequence of each plausible option>
+Impact: <wire or behavior consequence of each option>
 ```
 
-Batch only independent questions. Record the answer in the packet. Set the packet to `BLOCKED` and stop before product-code edits when any `G-###` or material `D-###` decision remains open. Do not label a missing fact as a product decision.
+Batch only independent questions, record answers in the packet, and stay `BLOCKED` while any material `G-###` or `D-###` is open.
 
 ### 7. Implement one shared semantic model
 
-Read [tagmango-implementation.md](references/tagmango-implementation.md) before editing.
+Read [tagmango-implementation.md](references/tagmango-implementation.md) first and follow it for repository surfaces, the external framework seams, the shared implementation boundary, validation layers, kebab-case file naming, and module/documentation wiring. Gate decisions this workflow owns:
 
-- Reuse an existing canonical domain service in `libs/services` when it already owns the behavior.
-- Put every new or extracted business use case in `libs/services/src/lib/<domain>/` and every new typed data-access implementation in `libs/repository/src/repositories/<domain>/`, following their public exports and dependency wiring conventions.
-- Define the canonical capability boundary independently of the legacy route and the public endpoint. When one legacy handler bundles several capabilities, separate them deliberately; for the capability in scope, capture every source-backed rule, state transition, persistence effect, and side effect in the shared implementation.
-- When behavior exists only in an app, characterize it first, then extract the complete scoped decision model into these shared libraries. Do not call a legacy/internal controller, copy its architecture wholesale, or add new app-local business/repository code.
-- Model transport-neutral commands, results, domain errors, actor/tenant context, and injected policies. Do not branch on `external` versus `core` inside the domain service; express real permission or capability differences through domain inputs and policies.
-- Keep the shared result rich enough for the complete scoped capability. Enforce the narrower external request and exposure contract in its DTOs and mapper rather than deleting core-relevant behavior or fields from the domain model.
-- When a matching core API exists, rewire its controller to the shared use case in the same port. Keep core and external contract adapters separate, preserve both observable contracts in their mappers, and record the implementation mapping. If safe rewiring is materially blocked, stop and record a decision instead of duplicating logic.
-- When no matching core API exists yet, complete the packet's `M-###` mapping and show from source and implementation traceability that a future core route needs only transport authentication, DTO/mapping, and wiring. If any business rule, repository query, state transition, or side-effect orchestration would still have to be implemented during the core migration, keep core migration readiness `BLOCKED` and do not call the port complete.
-- Keep HTTP parsing and authorization in the controller, business rules in the domain service, persistence in repositories, and public response shaping in an explicit mapper/DTO boundary.
-- Put confirmed cross-field rules in a named validator or policy with a stable seam for the later testing workflow. Keep database-dependent rules in the service/domain layer.
-- Use explicit allowlists for public responses. Never spread a database document or internal DTO into an external response.
-- Preserve side-effect order, retry safety, atomicity, and legacy failure semantics unless the packet records an approved change.
-- Follow current repository standards for every touched file even when the source is legacy debt.
-- Name every file created by the port with a lowercase kebab-case descriptive base and the repository's conventional dot-delimited role suffixes, for example `create-mango.service.ts`, `create-mango-request.dto.ts`, or `mango.repository.ts`. A single lowercase token such as `index.ts` is valid. Do not rename untouched legacy files solely for this rule; document any repository-, framework-, or generator-mandated exception in the packet.
+- Reuse an existing canonical domain service when it already owns the behavior; otherwise characterize app-local behavior first, then extract the complete scoped decision model into `libs/services` and `libs/repository`. Never call or copy a legacy controller, and never add app-local business or repository code.
+- When one legacy handler bundles several capabilities, split them deliberately and port the scoped one completely.
+- When an equivalent core API exists, rewire its controller to the shared use case in this same port, preserving both observable contracts through separate adapters and mappers. If safe rewiring is materially blocked, stop and record a `D-###` instead of duplicating logic.
+- When none exists, the `M-###` mapping must show a future core route needs transport-only work; otherwise keep core-migration readiness `BLOCKED` and do not call the port complete.
+- Keep external exposure in an explicit allowlisted mapper/DTO. Never narrow the domain model to the external subset, and never spread a document or internal DTO into a response.
+- Preserve side-effect order, retry safety, atomicity, and legacy failure semantics unless the packet records an approved change; hold every touched file to current repository standards.
+- Implement in narrow slices: one behavior cluster at a time, checks passing between slices. Do not stage, commit, push, or publish unless the user explicitly asks.
 
-Implement in narrow behavior slices. Do not stage, commit, push, publish docs, or mutate trackers unless the user explicitly requests that action.
+### 8. Traceability and checks — no tests
 
-### 8. Complete implementation traceability and defer testing
+Map every `B/V/G/M/S-###` rule to an `H-###` row: the implemented files and symbols, how the rule is represented, what remains runtime-unverified, and the evidence the later testing workflow needs.
 
-Do not create or modify test files and do not run test suites under this skill. Do not design or execute a test-certification phase; a separate testing skill will own that process. Existing tests may be read as source evidence during research, but they are not changed or executed here.
+Run the non-test checks from tagmango-implementation.md §7 (format, lint, typecheck, build, generated OpenAPI inspection, final diff review); skip and record any command that would run tests. Inspect every added and scoped untracked filename, then record `New-file naming audit` as `PASS` with any justified exceptions.
 
-Map every `B-###`, `V-###`, `G-###`, `M-###`, and `S-###` rule to an `H-###` implementation-handoff row containing:
+Set the packet to `IMPLEMENTED`, never `VERIFIED` — traceability shows where the intended behavior was placed, not that it executes correctly.
 
-- the exact implemented files and symbols;
-- how the rule is represented in the service, repository, adapter, mapper, DTO, or documentation;
-- any behavior that remains runtime-unverified;
-- the source evidence and risk context the later testing workflow will need.
-
-Run proportionate non-test implementation checks such as formatting, lint, typecheck, build, generated OpenAPI inspection, and final diff/architecture review. Inspect every added path and scoped untracked path for the new-file naming rule, then record `New-file naming audit` as `PASS` with any justified exceptions in the packet. Choose commands that do not invoke test targets; when such a command is unavailable, record the limitation instead of broadening this workflow.
-
-Set the packet to `IMPLEMENTED`, not `VERIFIED`. State clearly that behavioral and runtime certification is deferred. Implementation traceability demonstrates where the intended behavior was placed; it does not prove that behavior through execution.
-
-### 9. Validate the implementation handoff
-
-Validate the packet at each gate:
+### 9. Validate the gates
 
 ```sh
 python3 <skill-directory>/scripts/port_packet.py check <packet-path> --stage design
 python3 <skill-directory>/scripts/port_packet.py check <packet-path> --stage implementation
 ```
 
-Stop at `IMPLEMENTED`. Preserve the packet, source pins, ledgers, consumer examples, implementation mapping, check results, and unresolved runtime risks so a later testing or audit skill can continue without reconstructing the port from scratch. Do not invoke those later workflows automatically.
+Stop at `IMPLEMENTED`. Preserve the packet, pins, ledgers, examples, and unresolved runtime risks for the later testing or audit workflow; do not invoke those workflows automatically.
 
 ## Handoff
 
-Report:
+Report: the endpoint and consumer goal; issue URL with resolved grill decisions; source pins; packet path and status; public-contract summary; preserved behavior and newly backend-enforced frontend rules; files changed; shared service/repository paths and every consumer rewired to them; `M-###` coverage and the exact work a future core adapter still needs; check outcomes; deferred-testing risks; and open decisions or deviations.
 
-- endpoint and consumer goal;
-- GitHub issue URL, captured requirements, and resolved grill decisions;
-- authoritative source pins;
-- packet path and status;
-- public contract summary;
-- preserved behavior and newly backend-enforced frontend rules;
-- implementation files changed;
-- shared service/repository paths and every core/external consumer rewired to them;
-- canonical capability scope, `M-###` coverage, core migration readiness, and the exact work a future core adapter still requires;
-- non-test implementation checks and exact outcomes;
-- explicit deferred-testing status and runtime risks handed to the later workflow;
-- unresolved decisions, known deviations, and residual risks.
-
-Separate confirmed parity from inferred or unverified behavior. Never describe a partial port as complete.
+Separate confirmed parity from inference. Never describe a partial port as complete.
