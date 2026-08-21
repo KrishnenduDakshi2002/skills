@@ -8,7 +8,7 @@
 4. Interpret frontend behavior
 5. Preserve value semantics
 6. Resolve contradictions and outliers
-7. Choose parity evidence
+7. Capture parity evidence for implementation
 8. Avoid common failure modes
 
 ## 1. Define authority

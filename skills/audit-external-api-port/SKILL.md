@@ -1,117 +1,59 @@
 ---
 name: audit-external-api-port
-description: Perform an independent, read-only audit of a GitHub-issue-led TagMango external API port for legacy/core-api behavioral parity, resolved public-contract decisions, backend enforcement of frontend rules, security and field exposure, capability-complete business logic in libs/services, shared data access in libs/repository, external plus current/future core reuse, core-replacement readiness, documentation/runtime agreement, and test evidence. Use when asked to review, audit, validate, certify, or find gaps in an external endpoint or port. Do not implement fixes unless the user separately approves them after reviewing findings.
+description: Independent, read-only audit of a GitHub-issue-led TagMango external API port — behavioral parity, public-contract quality, backend enforcement, exposure and security, shared libs/services + libs/repository architecture, and core-replacement readiness. Reports P0–P3 findings and one certification verdict; never edits code.
+argument-hint: "[pr-number | branch | packet-path]"
+disable-model-invocation: true
 ---
 
 # Audit External API Port
 
-Reconstruct the expected behavior and public contract independently. Treat the implementation's port packet, comments, docs, and tests as claims to verify, not authority.
+Reconstruct the expected behavior and public contract independently. The port packet, comments, docs, and tests are claims to verify, not authority. Stay read-only and findings-first: no edits, staging, commits, publishing, or thread resolution unless the user explicitly asks after seeing the findings.
 
-Keep the audit read-only and findings-first. Do not edit code, resolve threads, stage, commit, push, or publish anything unless the user explicitly asks after seeing the findings.
+Read [audit-rubric.md](references/audit-rubric.md) before reviewing the diff; it holds the per-area checklists this workflow walks.
 
 ## 1. Lock scope and evidence
 
 Read repository instructions, coding standards, testing rules, architecture maps, and working-tree state. Determine the exact base-to-head or user-specified diff; report unrelated dirty files and keep them out of scope.
 
-Pin:
-
-- the initiating GitHub issue, current body/comments, captured `I-###` requirements, and accepted contract decisions;
-- target branch/commit and external surface;
-- authoritative `apps/api` and/or `apps/core-api` source commit;
-- user-designated `tagmango-web-platform` commit;
-- accepted specification/decisions;
-- port packet path, if any;
-- claimed `M-###` capability mappings and core migration readiness;
-- generated OpenAPI and runtime evidence available for the target.
-
-If source authority is ambiguous, investigate repository/branch evidence first. Ask only when the ambiguity would change a material conclusion.
-
-Read [audit-rubric.md](references/audit-rubric.md) before reviewing the diff.
+Pin: the initiating GitHub issue with its `I-###` requirements and accepted decisions; target branch/commit and external surface; authoritative `apps/api` and/or `apps/core-api` commits; the user-designated `tagmango-web-platform` commit; the port packet path; claimed `M-###` mappings and readiness state; and the OpenAPI/runtime evidence available. Resolve ambiguous source authority from repository evidence first; ask only when the ambiguity would change a material conclusion.
 
 ## 2. Reconstruct behavior independently
 
-Trace route, middleware/guards, validation, controller, service, repositories, schema defaults/hooks, transactions, external calls, queues, notifications, analytics, quotas, response transformation, and error mapping in the authoritative source.
+Trace the full backend decision path and the frontend flow (rubric §2 lists the areas). Classify each frontend restriction as business invariant, entitlement gate, normalization/default, UI convenience, or ambiguity.
 
-Trace frontend initialization, conditional gates, submit validation, payload assembly/deletion/defaulting, and caller success/failure behavior. Classify each frontend restriction as a business invariant, entitlement gate, normalization/default, UI convenience, or ambiguity.
+Build your own ledger of externally meaningful scenarios: negative combinations, lifecycle states, permissions, ownership, tenant/host binding, side effects, ordering, idempotency, retries, and absent/null/false/zero/empty semantics. Define the scoped capability independently of the external contract — including modes the external API intentionally omits but a future core replacement needs. If the legacy route bundles several capabilities, verify the declared decomposition.
 
-Build a reviewer ledger of externally meaningful scenarios. Include negative combinations, lifecycle states, permissions, ownership, tenant/host binding, side effects, ordering, idempotency, retries, and absent/null/false/zero/empty semantics.
+Compare your ledger against the target and the packet; never downgrade a rule you found because the packet omitted it. Verify the issue was treated as a starting brief, and that every `G-001`–`G-008` dimension was resolved by the developer or justified `N/A`, with the implementation matching those resolutions.
 
-Define the scoped business capability independently of the external contract. If the legacy route bundles several capabilities, verify the declared decomposition. Trace all behavior required for the capability a future core route will replace, including modes or domain results the external API intentionally omits.
+## 3. Audit the wire contract
 
-Compare this ledger with the target and the port packet. Do not downgrade an independently discovered rule because the packet omitted it.
+Judge from the generated OpenAPI document and, when a running server or captured integration response is available, real runtime responses. Never infer the public URL from a controller fragment or the response shape from Swagger DTO metadata. Walk rubric §3 and §5: complete versioned URL, honest method and resource boundaries, deliberate parameter placement, per-field semantics, allowlisted grouped responses, stable documented errors, and retry/idempotency/pagination/compatibility semantics where material.
 
-Verify that the issue was treated as the starting brief rather than unquestioned runtime truth. Check that every required `G-###` contract dimension was resolved by the developer or explicitly justified as not applicable, and that the implementation matches those resolutions.
-
-## 3. Audit the actual wire contract
-
-Inspect the generated OpenAPI document and, where feasible, representative runtime HTTP responses. Do not infer the public URL from a controller fragment or the response shape from Swagger DTO metadata.
-
-Judge the endpoint from an unfamiliar integrator's perspective:
-
-- Is the complete versioned URL intuitive and consistent?
-- Are method and resource boundaries honest?
-- Are path, query, headers, and body used deliberately?
-- Does every public field have a clear name, type, format, unit, requiredness, default, null/empty meaning, and realistic example?
-- Are conditional fields representable and backend-enforced?
-- Is the response grouped around the consumer's next action and explicitly allowlisted?
-- Are errors stable, actionable, documented, and consistent with runtime?
-- Are retry, idempotency, concurrency, pagination, and compatibility semantics defined where material?
-
-Write the smallest valid request, an important optional combination, and an invalid combination from the docs alone. If that is impossible, record a contract finding.
+Acid test: write the minimal valid request, an important optional combination, and an invalid combination from the docs alone. If that fails, record a contract finding.
 
 ## 4. Audit validation and enforcement
 
-Create a decision table from all discriminators and dependent fields. Send or reason through combinations that the first-party frontend never emits; external callers are not constrained by UI controls.
+Build a decision table from every discriminator and dependent field, then reason through combinations the first-party frontend never emits — external callers send anything schema-valid. Walk rubric §4: conditional requirements and prohibitions, contradictory values, actor/tenant/currency/entitlement/ownership/state rules, boundaries and encodings, create-versus-patch absent/null semantics, race-safe uniqueness, promoted frontend business rules, and UI conveniences that must not have been promoted.
 
-Verify:
-
-- conditionally required and forbidden fields;
-- contradictory values and normalization policy;
-- actor-, tenant-, currency-, entitlement-, ownership-, and state-dependent rules;
-- boundaries, formats, precision, unknown fields, and array encoding;
-- create versus patch absent/null semantics;
-- database-enforced uniqueness/integrity under races;
-- frontend business rules promoted to backend enforcement;
-- UI-only constraints not accidentally promoted.
-
-Documentation without enforcement is a defect. A DTO decorator alone is insufficient for rules requiring authenticated/database context.
+Documentation without enforcement is a defect, and a DTO decorator cannot enforce a rule that needs authenticated or database context — check the layer, not just the presence.
 
 ## 5. Audit exposure and security
 
-Trace every response field to its source. Flag raw document spreads, broad projections, internal DTO reuse, populated objects, unstable schema fields, secrets, private user data, internal flags, provider payloads, and cross-tenant relationships.
+Trace every response field to its source and treat exposure as an allowlist exercise (rubric §6). Verify authentication, API-key scope, host/tenant binding, permission, resource ownership, rate/quota policy, and non-enumeration separately — test or inspect revoked keys, wrong hosts, other-owner resources, and failure messages. For mutations, inspect atomicity, duplicate submission, timeout/retry behavior, and whether side effects can double-run.
 
-Verify authentication separately from API-key scope, host/tenant binding, permission, resource ownership, rate/quota policy, and non-enumeration behavior. Test or inspect revoked keys, wrong hosts, other-owner resources, and failure messages.
+## 6. Audit architecture and core-replacement readiness
 
-For mutations, inspect atomicity, duplicate submission, timeout/retry behavior, and whether side effects can double-run.
+Verify the shared-capability shape: controller owns parsing/auth and delegates one meaningful use case; business rules, transactions, and side-effect orchestration live in `libs/services`; typed persistence in `libs/repository`; equivalent core and external controllers call the same use case; exposure policy stays in transport mappers/DTOs; domain types are transport-neutral with no `external`-versus-`core` branching; every added file is kebab-case with conventional role suffixes. Rubric §7 lists the full flag set. Blocking findings include: new app-local business or repository code, an unrewired equivalent core caller, an external-shaped partial domain model, or a future core replacement that still needs business or data work.
 
-## 6. Audit architecture and tests
+Independently trace every scoped `B-###`/`V-###` rule through its `M-###` row into shared code, adapters, and tests. If adding a core route would need more than authentication, DTO/mapping, and wiring, the readiness claim fails.
 
-Confirm the target preserves business behavior through maintainable current architecture:
+## 7. Audit tests and documentation
 
-- controller owns HTTP parsing/auth and delegates one meaningful use case;
-- shared domain service under `libs/services` owns rules, transactions, state transitions, and side-effect orchestration;
-- shared repository under `libs/repository` owns typed persistence and queries;
-- equivalent core and external controllers call the same shared use case rather than duplicate policy branches;
-- the shared use case is complete for the scoped legacy capability rather than shaped around the external subset;
-- transport DTOs, HTTP errors, envelopes, and public exposure mapping remain outside the shared service;
-- domain commands, results, actor/tenant context, and errors are transport-neutral and do not branch on `external` versus `core`;
-- public mapper/DTO owns response shaping;
-- shared canonical services/utilities are reused;
-- legacy controllers are not called or copied wholesale;
-- every file added by the port has a lowercase kebab-case descriptive base with established dot-delimited role suffixes; untouched legacy names are out of scope, and any repository-, framework-, or generator-mandated exception is documented;
-- no shallow facade, response-shaped domain service, cast-heavy boundary, or duplicated error mapping was added.
+Map reviewer rules to tests using rubric §8. Reject construction-only, handler-existence, broad-snapshot, mock-choreography, and happy-path-only tests as parity evidence; require behavior-focused tests at the correct seams, real Mongo where persistence matters, and faked external infrastructure. Verify generated docs against runtime. Typecheck, lint, build, and coverage are supporting signals, not behavior certification.
 
-Verify that every scoped `B-###` and `V-###` rule appears in an `M-###` row, then trace each row independently from legacy behavior into shared service/repository code, external adapter policy, the current or future core mapping, and tests. When no core route exists, verify that adding it would require only authentication, DTO/mapping, and controller/module wiring. If it would require a new business rule, repository query, state transition, side-effect path, or response-shaped rewrite of the shared model, the readiness claim fails.
+## 8. Report findings
 
-Treat new app-local business services/repositories, failure to rewire an equivalent core caller, an external-shaped partial domain model, or a future core replacement that still needs business/data reimplementation as blocking architecture findings. Do not accept speculative generics or a catch-all service as a substitute for a concrete, capability-complete shared use case.
-
-Map reviewer rules to tests. Reject construction-only, handler-existence, broad snapshot, mock-choreography, and happy-path-only tests as parity evidence. Require behavior-focused tests at the correct unit/integration/HTTP seams, real Mongo where persistence matters, and faked external infrastructure.
-
-Verify generated docs against runtime. Typecheck, lint, build, and coverage are supporting signals, not behavior certification.
-
-## 7. Report findings
-
-Order findings by severity and confidence. Use this format:
+Order by severity and confidence:
 
 ```text
 [P1] <concise violated promise> — <target file:line>
@@ -124,16 +66,14 @@ Remediation: <smallest sound direction; do not patch>
 Missing test: <observable test that would catch it>
 ```
 
-Use:
+- `P0` — exploitable security/privacy, cross-tenant access, irreversible corruption, or catastrophic side effects.
+- `P1` — broken business parity, auth/ownership, public compatibility, data integrity, required shared-layer reuse, or commonly unusable contract behavior.
+- `P2` — important edge cases, misleading docs/examples, response exposure, maintainability, or material test gaps.
+- `P3` — low-risk clarity or consistency issues worth fixing.
 
-- `P0` for exploitable security/privacy, cross-tenant access, irreversible corruption, or catastrophic side effects;
-- `P1` for broken business parity, auth/ownership, public compatibility, data integrity, required shared-layer reuse, or common unusable contract behavior;
-- `P2` for important edge cases, misleading docs/examples, response exposure, maintainability, or material test gaps;
-- `P3` for low-risk clarity/consistency issues worth fixing.
+Do not flood the report with style nits while behavioral or contract risks remain. Label hypotheses as such and name the missing evidence.
 
-Do not flood the report with style nits while behavioral or contract risks remain. Do not state speculative findings as facts; label hypotheses and name the missing evidence.
-
-## 8. Give a certification result
+## 9. Certify
 
 Conclude with exactly one:
 
@@ -142,4 +82,4 @@ Conclude with exactly one:
 - `BLOCKED BY DECISION` — source-backed behaviors conflict and a product decision is required.
 - `NOT CERTIFIED` — required source/runtime/test evidence was unavailable.
 
-List the source pins, checks actually run, core migration readiness result, unverified areas, and residual risks. Never convert a partial static review into a parity certification.
+List the source pins, checks actually run, core-migration readiness result, unverified areas, and residual risks. Never convert a partial static review into a parity certification.
