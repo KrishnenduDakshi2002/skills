@@ -1,0 +1,4 @@
+interface:
+  display_name: "Audit External API Port"
+  short_description: "Audit API parity and core replacement readiness"
+  default_prompt: "Use $audit-external-api-port to independently audit this issue-led external API port, including capability-complete shared reuse and future core replacement readiness, and report evidence-backed findings."

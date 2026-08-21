@@ -1,0 +1,4 @@
+interface:
+  display_name: "Port External API"
+  short_description: "Port APIs for external and future core reuse"
+  default_prompt: "Use $port-external-api with this GitHub issue to resolve the contract, build a capability-complete shared use case, and produce an implementation handoff without authoring tests."
