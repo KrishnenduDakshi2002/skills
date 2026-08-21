@@ -49,6 +49,7 @@ Promote a frontend-only restriction into backend enforcement only when evidence 
 - Research or design request → stop after the grill and the designed `M-###` mapping, before any product-code edit.
 - Full port → pause for the developer's contract confirmation; implement only when the packet is `READY` and no material decision is open.
 - Implementing an already-approved packet → first re-verify its source pins and assumptions are still current.
+- Retrofit (completing a packet that predates the current gates while the code is already committed) → set the packet to `IMPLEMENTING`, fill every missing section from committed-code and source evidence exactly as if porting fresh — pattern rows, migration mapping, and traceability must be true, not synthesized to pass — and set `IMPLEMENTED` only when both gate checks are green. A gate that cannot honestly pass is a finding to fix or a `D-###`, never a row to fudge.
 - Review-only request → wrong skill; use `audit-external-api-port`.
 - Never create, modify, or run tests. Existing tests are read-only source evidence; certification belongs to a separate testing workflow.
 
