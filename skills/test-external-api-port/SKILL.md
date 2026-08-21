@@ -31,7 +31,7 @@ Read the ledgers this run consumes: `B-###` scenarios with their concrete payloa
 
 Write the full `T-###` plan before executing anything. Derive cases from the ledgers, not from imagination:
 
-- each `B-###` row → its concrete scenario against the new path, plus the same intent against the legacy/core route named by the drift watchlist;
+- each `B-###` row → its concrete scenario against the new path, plus the same intent against the legacy/core route from the drift watchlist (entries arrive as directly callable `<apps/api | core-api> METHOD /full/path`; a prose entry you cannot call verbatim is a packet defect to report, not to re-derive silently);
 - each `V-###` invalid combination → expected rejection on both paths;
 - each `E-###` row → the failure scenario and equivalent error class;
 - each `S-###` row → new path only (revoked key, wrong host, other-tenant, abuse limits);
