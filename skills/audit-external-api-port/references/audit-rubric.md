@@ -184,7 +184,10 @@ Flag:
 - non-atomic multi-write behavior;
 - a newly added filename that violates the kebab-case rule or has an undocumented exception;
 - unrelated cleanup widening the port;
-- invented abstraction with one call site and no real behavior.
+- invented abstraction with one call site and no real behavior;
+- a branch, default, or mutation in new domain code with no corresponding ledger rule or recorded decision;
+- an optimization or restructuring without an equivalence note covering ordering, rounding, projection, and null handling;
+- a missing or incomplete drift watchlist of legacy routes that keep a live duplicated implementation of the ported capability.
 
 Clean architecture must not alter the source-backed business outcome. A refactor is not a license to “improve” legacy semantics silently.
 

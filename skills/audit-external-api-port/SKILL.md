@@ -47,6 +47,8 @@ Verify the shared-capability shape: controller owns parsing/auth and delegates o
 
 Independently trace every scoped `B-###`/`V-###` rule through its `M-###` row into shared code, adapters, and tests. If adding a core route would need more than authentication, DTO/mapping, and wiring, the readiness claim fails.
 
+Then reverse-trace: flag any branch, default, or mutation in new domain code with no corresponding ledger rule or recorded decision — unmapped logic is invented behavior. Verify any optimization carries an equivalence note covering ordering, rounding, projection, and null handling, and that the drift watchlist names every legacy route keeping a live duplicated implementation.
+
 ## 7. Audit tests and documentation
 
 Map reviewer rules to tests using rubric §8. Reject construction-only, handler-existence, broad-snapshot, mock-choreography, and happy-path-only tests as parity evidence; require behavior-focused tests at the correct seams, real Mongo where persistence matters, and faked external infrastructure. Verify generated docs against runtime. Typecheck, lint, build, and coverage are supporting signals, not behavior certification.

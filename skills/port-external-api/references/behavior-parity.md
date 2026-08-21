@@ -62,7 +62,7 @@ Inspect sibling create/update/read/delete flows when they share rules. Creation 
 
 ## 3. Build the behavior ledger
 
-Assign one `B-###` identifier to each externally meaningful behavior. Keep rules atomic enough that each rule maps to one clear implementation decision and can later be verified independently.
+Assign one `B-###` identifier to each externally meaningful behavior. Keep rules atomic enough that each rule maps to one clear implementation decision and can later be verified independently. Record scenarios with concrete executable values — real field names, sample payloads, expected persisted fields — not abstractions.
 
 Define the canonical capability before letting the external contract narrow the research. A legacy route may bundle several independent capabilities; split those deliberately, then trace the complete behavior of the capability in scope. The external adapter may accept or return fewer fields, but that exposure choice must not erase legacy rules that a future core replacement will need.
 
@@ -159,6 +159,8 @@ Prefer evidence in this order:
 4. Explicit hypotheses and deferred runtime risks when executable evidence is unavailable.
 
 Distinguish exact parity from semantic parity. Exact parity compares bytes/values when representation matters. Semantic parity permits an approved public representation change while comparing the same business outcome, persistence, and side effects.
+
+An optimization or restructuring claims semantic parity only with an equivalence note in the packet arguing outcome-equality against each affected `B-###` — covering ordering, rounding, projection, pagination stability, timezone, and null handling — flagged for the later testing workflow to verify.
 
 Never broaden normalizers, add allowlists, or discard fields merely to simplify the port. Record unexplained differences for a product decision or the later testing workflow.
 

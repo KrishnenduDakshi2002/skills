@@ -9,6 +9,16 @@ disable-model-invocation: true
 
 Port behavior, not legacy representation: preserve the complete business decision path while designing a deliberate public contract that an unfamiliar integrator can use safely.
 
+## The same-outcome rule
+
+**Given the same request, actor, and stored state, the ported path must produce the same persisted state, same response semantics, same side effects in the same order, and same error surface as the pinned legacy source.** Code structure may change; outcomes may not.
+
+Allowed without a decision: renaming, decomposition, typed models, provably-dead code removal, and optimizations with identical results — including rounding, ordering, projection, and null handling.
+
+Forbidden without a recorded `D-###`: changing defaults, reordering side effects, tightening or loosening validation, changing rounding/precision/timezone handling, altering query filters or sorts, removing "useless-looking" writes, and fixing apparent legacy bugs. A suspected bug is preserved and escalated as a decision — never silently fixed, never silently kept.
+
+An optimization ships only with an equivalence note in the packet arguing outcome-equality against each affected `B-###`, flagged for the testing workflow to verify. **When the source and your intuition disagree, the source wins.**
+
 ## The shared-capability rule
 
 Every port lands one transport-neutral use case in `libs/services/src/lib/<domain>/` with typed data access in `libs/repository/src/repositories/<domain>/`. The external controller and every equivalent current core controller are thin adapters over that use case: each parses its own DTOs, authenticates, calls the shared use case, and maps the domain result to its own response contract.
@@ -59,7 +69,7 @@ Use the repository's established scratch/spec location instead of `.scratch/` wh
 
 Read [behavior-parity.md](references/behavior-parity.md) and trace every backend layer and frontend flow listed in its §2 — route registration through side effects, form initialization through payload assembly — plus the downstream consumer of every caller-controlled URL, file reference, callback, redirect, or provider identifier.
 
-Record each externally meaningful rule as a `B-###` row with a `repository@commit:path:line` anchor, and classify each frontend observation with the table in behavior-parity.md §4. Work breadth-first (map all layers and fields once), then risk-first (deepen public fields, cross-field rules, permissions, persistence, side effects). Research converges when every public input/output and material capability behavior has pinned evidence or a `D-###` decision; do not expand into unrelated domain behavior.
+Record each externally meaningful rule as a `B-###` row with a `repository@commit:path:line` anchor, and classify each frontend observation with the table in behavior-parity.md §4. Write scenarios with executable concrete values — real field names, sample payloads, expected persisted fields and responses — so the testing workflow can turn rows into characterization tests verbatim. Work breadth-first (map all layers and fields once), then risk-first (deepen public fields, cross-field rules, permissions, persistence, side effects). Research converges when every public input/output and material capability behavior has pinned evidence or a `D-###` decision; do not expand into unrelated domain behavior.
 
 ### 4. Draft the contract from the consumer inward
 
@@ -99,11 +109,13 @@ Read [tagmango-implementation.md](references/tagmango-implementation.md) first a
 - When none exists, the `M-###` mapping must show a future core route needs transport-only work; otherwise keep core-migration readiness `BLOCKED` and do not call the port complete.
 - Keep external exposure in an explicit allowlisted mapper/DTO. Never narrow the domain model to the external subset, and never spread a document or internal DTO into a response.
 - Preserve side-effect order, retry safety, atomicity, and legacy failure semantics unless the packet records an approved change; hold every touched file to current repository standards.
+- **No unmapped code:** every branch, default, and mutation in new domain code traces back to a `B-###`, `V-###`, or `D-###`. Logic with no rule is invented behavior — delete it or record it.
+- Readability bar: an engineer who has never opened the legacy controller must understand the shared use case from its code alone; the legacy file is not documentation. Where a preserved quirk looks wrong on purpose, one comment states the business reason.
 - Implement in narrow slices: one behavior cluster at a time, checks passing between slices. Do not stage, commit, push, or publish unless the user explicitly asks.
 
 ### 8. Traceability and checks — no tests
 
-Map every `B/V/G/M/S-###` rule to an `H-###` row: the implemented files and symbols, how the rule is represented, what remains runtime-unverified, and the evidence the later testing workflow needs.
+Map every `B/V/G/M/S-###` rule to an `H-###` row: the implemented files and symbols, how the rule is represented, what remains runtime-unverified, and the evidence the later testing workflow needs. Then reverse the mapping: scan the new domain code for branches, defaults, and mutations with no ledger rule, and record or remove each before handoff.
 
 Run the non-test checks from tagmango-implementation.md §7 (format, lint, typecheck, build, generated OpenAPI inspection, final diff review); skip and record any command that would run tests. Inspect every added and scoped untracked filename, then record `New-file naming audit` as `PASS` with any justified exceptions.
 
@@ -120,6 +132,6 @@ Stop at `IMPLEMENTED`. Preserve the packet, pins, ledgers, examples, and unresol
 
 ## Handoff
 
-Report: the endpoint and consumer goal; issue URL with resolved grill decisions; source pins; packet path and status; public-contract summary; preserved behavior and newly backend-enforced frontend rules; files changed; shared service/repository paths and every consumer rewired to them; `M-###` coverage and the exact work a future core adapter still needs; check outcomes; deferred-testing risks; and open decisions or deviations.
+Report: the endpoint and consumer goal; issue URL with resolved grill decisions; source pins; packet path and status; public-contract summary; preserved behavior and newly backend-enforced frontend rules; files changed; shared service/repository paths and every consumer rewired to them; `M-###` coverage and the exact work a future core adapter still needs; the drift watchlist — every legacy route that keeps a live duplicated implementation of this capability until core replacement; equivalence notes for any optimization; check outcomes; deferred-testing risks; and open decisions or deviations.
 
 Separate confirmed parity from inference. Never describe a partial port as complete.

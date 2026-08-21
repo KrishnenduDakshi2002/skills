@@ -276,6 +276,10 @@ Residual risks and unverified areas: <!-- Replace or None -->
 
 Core migration readiness and remaining future adapter work: <!-- Replace -->
 
+Drift watchlist (legacy routes keeping a live duplicated implementation until core replacement): <!-- Replace or None -->
+
+Optimization equivalence notes: <!-- Replace with outcome-equality arguments per affected B-###, or None -->
+
 Testing status: DEFERRED TO SEPARATE WORKFLOW
 
 Deferred behavioral/runtime verification scope and risks: <!-- Replace -->
