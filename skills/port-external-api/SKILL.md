@@ -25,6 +25,16 @@ Every port lands one transport-neutral use case in `libs/services/src/lib/<domai
 
 The use case stays complete for the whole scoped legacy capability even when the external contract deliberately exposes a subset. The test for "complete": a future core controller could replace the legacy route by adding only authentication, DTOs, mapping, and wiring — never another business rule, repository query, state transition, or side-effect path. Never branch on `external` versus `core` inside domain code; express real permission or capability differences as domain context and injected policies. "Generic" means exactly this rule — not speculative TypeScript generics, a catch-all service, or configuration for imagined consumers.
 
+## The reuse rule
+
+Reusability flows both ways through every port.
+
+**Consume:** a new wrapper, adapter, parser, pipe, interface, or factory is presumed unnecessary until repository inspection proves no existing primitive covers the concern — that proof is the `P-###` row. Existing DTO transformers, canonical representations, error registries, DI modules, clients, cache services, and derivable types come first.
+
+**Produce:** everything this port creates — the use case, repository methods, representation tiers, named policies, error definitions — is a canonical primitive placed where the next port's `P-###` inspection will find it: shared modules and registries, never endpoint-local. The test: the next port touching this domain adopts your primitives unchanged. An endpoint-local helper the next port would have to duplicate is a defect, not a convenience.
+
+Reusable means one canonical owner, not speculative generality — configuration for imagined consumers is still an invented abstraction.
+
 ## Outcomes
 
 1. **Behavioral fidelity** — confirmed defaults, eligibility rules, validation, state transitions, persistence, side effects and their order, error cases, transaction boundaries, and absent/null/false/zero/empty semantics match the pinned sources.
@@ -105,6 +115,7 @@ Batch only independent questions, record answers in the packet, and stay `BLOCKE
 
 Read [tagmango-implementation.md](references/tagmango-implementation.md) first and follow it for repository surfaces, the external framework seams, the shared implementation boundary, validation layers, kebab-case file naming, and module/documentation wiring. Gate decisions this workflow owns:
 
+- Before writing code, resolve the packet's Repository Pattern Conformity table (`P-001`–`P-010`): for each concern, pin a recent *intentional* external port as the exemplar — not merely nearby files, which may carry legacy debt — name the existing primitive or owning module, and decide `ADOPTED` or a `DEVIATION (D-###)`. Both halves of the reuse rule apply here: prove reuse first, and place what you create where the next port will find it.
 - Reuse an existing canonical domain service when it already owns the behavior; otherwise characterize app-local behavior first, then extract the complete scoped decision model into `libs/services` and `libs/repository`. Never call or copy a legacy controller, and never add app-local business or repository code.
 - When one legacy handler bundles several capabilities, split them deliberately and port the scoped one completely.
 - When an equivalent core API exists, rewire its controller to the shared use case in this same port, preserving both observable contracts through separate adapters and mappers. If safe rewiring is materially blocked, stop and record a `D-###` instead of duplicating logic.
@@ -117,7 +128,7 @@ Read [tagmango-implementation.md](references/tagmango-implementation.md) first a
 
 ### 8. Traceability and checks — no tests
 
-Map every `B/V/G/M/S-###` rule to an `H-###` row: the implemented files and symbols, how the rule is represented, what remains runtime-unverified, and the evidence the later testing workflow needs. Then reverse the mapping: scan the new domain code for branches, defaults, and mutations with no ledger rule, and record or remove each before handoff.
+Map every `B/V/G/P/M/S-###` rule to an `H-###` row: the implemented files and symbols, how the rule is represented, what remains runtime-unverified, and the evidence the later testing workflow needs. Then reverse the mapping: scan the new domain code for branches, defaults, and mutations with no ledger rule, and record or remove each before handoff.
 
 Run the non-test checks from tagmango-implementation.md §7 (format, lint, typecheck, build, generated OpenAPI inspection, final diff review); skip and record any command that would run tests. Inspect every added and scoped untracked filename, then record `New-file naming audit` as `PASS` with any justified exceptions.
 

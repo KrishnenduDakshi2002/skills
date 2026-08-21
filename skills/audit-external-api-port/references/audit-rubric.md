@@ -24,6 +24,7 @@ Require:
 - runtime/generated-contract evidence for the public surface;
 - explicit separation of verified facts, inference, and product decisions.
 - resolved or justified `G-001` through `G-008` contract decisions with developer confirmation.
+- resolved `P-001` through `P-010` repository-pattern conformity rows, each pinning a recent intentional external port as exemplar and naming the existing primitive or a `D-###`-justified deviation.
 - complete `M-###` legacy/shared/external/core capability mappings and the claimed core migration readiness state.
 
 Block certification when the review mixes checkouts, follows an untrusted plan instead of source, or cannot establish the target diff.
@@ -186,6 +187,9 @@ Flag:
 - a newly added filename that violates the kebab-case rule or has an undocumented exception;
 - unrelated cleanup widening the port;
 - invented abstraction with one call site and no real behavior;
+- an implementation that contradicts its `ADOPTED` `P-###` pattern decision;
+- a new wrapper, adapter, parser, pipe, interface, or factory whose `P-###` row does not prove no existing primitive covers the concern;
+- a domain-general primitive (policy, mapper, DTO, repository method) buried endpoint-local where the next port would duplicate it instead of adopting it;
 - a branch, default, or mutation in new domain code with no corresponding ledger rule or recorded decision;
 - an optimization or restructuring without an equivalence note covering ordering, rounding, projection, and null handling;
 - a missing or incomplete drift watchlist of legacy routes that keep a live duplicated implementation of the ported capability;

@@ -58,6 +58,23 @@ Use evidence anchors in the form `repository@commit:path:line` throughout this p
 | Response envelope | <!-- Replace with runtime evidence --> | <!-- Replace --> | <!-- Replace --> |
 | Errors | <!-- Replace --> | <!-- Replace --> | <!-- Replace --> |
 
+## Repository Pattern Conformity
+
+Resolve every row against a recent intentional external port before implementing. Status is `ADOPTED` or `DEVIATION (D-###)` — a new wrapper, adapter, parser, pipe, interface, or factory is presumed unnecessary until repository inspection proves otherwise.
+
+| ID | Concern | Recent primary exemplar and evidence | Existing primitive or owning module | Decision and rationale | Status |
+|---|---|---|---|---|---|
+| P-001 | Request validation, transformation, and final DTO property types | <!-- Replace --> | <!-- Replace --> | <!-- Replace --> | <!-- Replace --> |
+| P-002 | Canonical summary/detail DTOs for returned or embedded resources | <!-- Replace --> | <!-- Replace --> | <!-- Replace --> | <!-- Replace --> |
+| P-003 | Runtime envelope, Swagger result type, mapper, and serializer | <!-- Replace --> | <!-- Replace --> | <!-- Replace --> | <!-- Replace --> |
+| P-004 | Domain errors, HTTP mapping, and error-definition documentation | <!-- Replace --> | <!-- Replace --> | <!-- Replace --> | <!-- Replace --> |
+| P-005 | Shared service/repository dependency-injection ownership and exports | <!-- Replace --> | <!-- Replace --> | <!-- Replace --> | <!-- Replace --> |
+| P-006 | Cache/provider/queue/file/client primitives and shared-state compatibility | <!-- Replace with keys, TTL units, serialization --> | <!-- Replace --> | <!-- Replace --> | <!-- Replace --> |
+| P-007 | Schema/model ownership, registration, and migration fidelity | <!-- Replace --> | <!-- Replace --> | <!-- Replace --> | <!-- Replace --> |
+| P-008 | Existing domain/persistence types available for derivation | <!-- Replace --> | <!-- Replace with Pick/Omit source types --> | <!-- Replace --> | <!-- Replace --> |
+| P-009 | Public terminology and field naming versus legacy storage names | <!-- Replace --> | <!-- Replace --> | <!-- Replace --> | <!-- Replace --> |
+| P-010 | Limits, defaults, intervals, numeric bounds, units, and reusable policy owner | <!-- Replace --> | <!-- Replace --> | <!-- Replace --> | <!-- Replace --> |
+
 ## Behavior Ledger
 
 | ID | Scenario and preconditions | Authoritative behavior | Persistence/side effects/order | Evidence | Classification | Target decision |
