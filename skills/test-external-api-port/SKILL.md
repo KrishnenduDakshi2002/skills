@@ -28,7 +28,7 @@ python3 <skill-directory>/scripts/testing_env.py check --repo <target-repo-root>
 ```
 
 - `ENVIRONMENT NOT READY` — the output lists each missing value with the exact question to ask the user. Relay every question verbatim, record each answer with `testing_env.py set <section.key> "<answer>" --repo <root>` (it validates URLs, rejects garbage, and redacts the key), then re-run `check`.
-- `ENVIRONMENT READY` — and only then — proceed.
+- `ENVIRONMENT READY` — show the user the complete READY table verbatim and wait for their explicit go-ahead before doing anything else. This review is the gate the script cannot enforce: the provenance stamp proves `set` was called, not that the user was asked first. A value the user does not recognize in that table means the environment is compromised — a remembered or invented value passed to `set` is laundering, the run is invalid, and every stamped value must be re-asked.
 
 Until `check` prints READY you may not send a request, build a URL, or name a tenant. `set` receives only values the user gave *in this session*: a port from serve targets, a server you noticed running, or a host/tenant remembered from another conversation is not an answer. If the user says "it's running locally," ask for the port. The custom host *is* the tenant — all scenarios and seeded data live under it; there is no separate tenant value. Timeouts, delays, artifact locations, and the oracle token env-var names (`TM_TEST_LEGACY_TOKEN`, `TM_TEST_CORE_TOKEN`) are fixed policy in the script, never asked.
 
