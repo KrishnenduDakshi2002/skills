@@ -29,7 +29,7 @@ Record everything needed to interpret and reproduce the run:
 - run id, UTC start/end, operation slug, packet path and its status at run start;
 - config snapshot with secret values replaced by `<redacted>`;
 - server identities: each host URL plus deployed version/commit when discoverable from health or docs endpoints, otherwise the URL and date;
-- tenant identifier and disposability, write posture, side-effect posture, and the testing Mongo MCP connection actually used;
+- the custom host (the tenant everything runs under), side-effect posture, and the testing Mongo MCP connection actually used;
 - coverage totals: planned, executed, passed, divergent, unexpected, blocked, excluded.
 
 ## 3. Case folders

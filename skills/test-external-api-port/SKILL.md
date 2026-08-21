@@ -13,18 +13,26 @@ Certify at runtime what `port-external-api` implemented and `audit-external-api-
 
 **Never weaken an expected outcome to make a case pass.** A red case has exactly three explanations — implementation bug, ledger error, or an approved change missing its record — and gets triaged, not papered over.
 
-This workflow produces artifacts only: no product code, no committed test files, no packet edits beyond the Test Traceability section and status. Confirmed implementation bugs go back through `port-external-api`; contract-design findings through `audit-external-api-port`.
+**You know nothing about this environment.** Server locations, ports, tenant identifiers, custom hosts, keys — these are facts you cannot infer, remember, or default. Legacy is not "probably on localhost"; the tenant is not "the one from last time." Every environment fact comes from exactly two sources: the config file, or the user's answer in this session. Anything else — memory of another conversation, a port that's usually right, a tenant name in your training or context — is fabrication.
 
-## 1. Resolve the config
+This workflow produces artifacts only: no product code, no committed test files, no packet edits beyond the Test Traceability section and one possible status change. Confirmed implementation bugs go back through `port-external-api`; contract-design findings through `audit-external-api-port`.
 
-Read `.external-api-testing.toml` at the target repository root; when absent, create it from [testing-config.example.toml](assets/testing-config.example.toml) and ensure it is gitignored. Resolve every required value below before sending any request. A value in the config file is an answer; anything else — a port you found in serve targets, a server you noticed running, a URL from a previous conversation — is not. **Never write or use a value the user did not give you.**
+Packet statuses are a closed set — `DISCOVERY`, `BLOCKED`, `READY`, `IMPLEMENTING`, `IMPLEMENTED`, `VERIFIED` — and this workflow may write exactly one of them: `VERIFIED`, only at the §7 gate. While testing runs, the packet stays `IMPLEMENTED`. Never invent a status (`VERIFYING`, `TESTING`, `IN_PROGRESS` do not exist); the validator rejects them and the run's state lives in the run artifacts, not the packet status.
 
-- **Server locations — always asked.** For each host missing from the config (external API, legacy `apps/api`, core-api), ask the user where that server is running: local or deployed, and the exact URL. You may inspect the repo's serve configuration first, but only to *offer* `http://localhost:<port>` as candidate options inside the question — discovery informs the question, never replaces it.
-- **Custom host and its API key — asked together**, since the key binds to that host.
-- Also ask when missing: the env-var names holding legacy/core auth tokens, the tenant identifier and its disposability, and `allow_write_scenarios`.
-- **Never asked:** the Mongo connection — the testing MCP connection is already connected.
+## 1. Resolve the environment — script-gated
 
-Persist every answer back to the file, marking each host local or deployed. The API key lives only in this gitignored file; artifacts and reports record credential values as `<redacted>`. Never proceed on a placeholder. Preflight (§4) then independently verifies every confirmed host responds and exposes the ported endpoint — a listening-but-wrong server fails preflight, never a comparison.
+Environment values are not your call. [testing_env.py](scripts/testing_env.py) owns `.external-api-testing.toml` (created gitignored on first run):
+
+```sh
+python3 <skill-directory>/scripts/testing_env.py check --repo <target-repo-root>
+```
+
+- `ENVIRONMENT NOT READY` — the output lists each missing value with the exact question to ask the user. Relay every question verbatim, record each answer with `testing_env.py set <section.key> "<answer>" --repo <root>` (it validates URLs, rejects garbage, and redacts the key), then re-run `check`.
+- `ENVIRONMENT READY` — and only then — proceed.
+
+Until `check` prints READY you may not send a request, build a URL, or name a tenant. `set` receives only values the user gave *in this session*: a port from serve targets, a server you noticed running, or a host/tenant remembered from another conversation is not an answer. If the user says "it's running locally," ask for the port. The custom host *is* the tenant — all scenarios and seeded data live under it; there is no separate tenant value. Timeouts, delays, artifact locations, and the oracle token env-var names (`TM_TEST_LEGACY_TOKEN`, `TM_TEST_CORE_TOKEN`) are fixed policy in the script, never asked.
+
+**Never asked and never configured:** Mongo — the already-connected testing MCP connection is used, read-only.
 
 ## 2. Ingest the packet
 
@@ -47,11 +55,19 @@ Coverage gate: every ledger row maps to a case or a justified `EXCLUDED` reason.
 
 ## 4. Preflight the environments
 
-Before case one, verify and record in the run manifest:
+Start mechanically:
 
-- reachability and auth for all three hosts with one harmless request each, and that the ported endpoint exists in the deployed external OpenAPI document — if the deployment predates the port, stop;
+```sh
+python3 <skill-directory>/scripts/testing_env.py preflight --repo <root> --packet <packet-path>
+```
+
+It re-verifies readiness, requires packet status `IMPLEMENTED` (a corrupted status is reported, never repaired or invented around), extracts the wire operation, checks every host answers over HTTP, and prints the manifest seed with config provenance for every value. A preflight failure means ask or fix — never improvise a value to get past it.
+
+Then verify yourself and add to the manifest:
+
+- the ported endpoint exists in the external server's OpenAPI document and the API key + custom host actually authenticate — if the deployment predates the port, stop;
 - deployed identity of each server (version/commit from health or docs endpoints when discoverable; otherwise URL plus date);
-- write posture: write scenarios run only when `allow_write_scenarios` is true *and* the tenant is disposable; otherwise execute the read plan and report the write cases as blocked, not skipped silently;
+- data posture: this is a testing platform, so write scenarios are allowed — but everything you create must be plain, realistic platform data (sensible names, titles, descriptions, amounts), never random strings; a human auditing the tenant later should see records that look real;
 - side-effect posture: deployed servers fire real queues, notifications, and provider calls — list every side-effect-bearing case and confirm the environment neuters or tolerates them before running any;
 - Mongo: use the already-connected testing MCP connection for reads only; confirm with one harmless read that it is the testing environment. **Never touch a production database connection**, even read-only, and never write through Mongo at all — writes are API-only.
 
@@ -59,7 +75,7 @@ Before case one, verify and record in the run manifest:
 
 Follow [artifact-schema.md](references/artifact-schema.md) exactly: one run directory, one folder per case, fixed file names — `case.json`, `request.json`, `response.json`, `legacy/`, `db.json`, `side-effects.json`, `verdict.json` — plus `manifest.json` and a human-first `summary.md`.
 
-Both paths of a differential case must run against equivalent state: seed through the APIs themselves (authentic documents), giving each path its own freshly twin-seeded state, and never run the new path against state the legacy call just mutated. The Mongo MCP connection is read-only verification: capture targeted before/after documents with it whenever a rule's expected outcome is persisted state, but every write — seed and scenario — goes through the APIs only, never through Mongo. No cleanup: run-created data stays in the disposable tenant, listed in the artifacts. Apply the configured inter-request delay; deployed environments are shared.
+Both paths of a differential case must run against equivalent state: seed through the APIs themselves (authentic documents), giving each path its own freshly twin-seeded state, and never run the new path against state the legacy call just mutated. The Mongo MCP connection is read-only verification: capture targeted before/after documents with it whenever a rule's expected outcome is persisted state, but every write — seed and scenario — goes through the APIs only, never through Mongo. No cleanup: run-created data stays in the test tenant, listed in the artifacts — which is why it must look like real platform data, not junk. Apply the fixed inter-request delay; deployed environments are shared.
 
 ## 6. Judge and triage
 
@@ -73,8 +89,8 @@ Append a `## Test Traceability` section to the packet: the `T-###` table (case, 
 python3 <port-skill-directory>/scripts/port_packet.py check <packet-path> --stage testing
 ```
 
-Anything unresolved: the packet stays `IMPLEMENTED`, and the run report carries the findings. This workflow is the only one permitted to write `VERIFIED`, and it never does so with an open divergence, an unobservable side effect claimed as verified, or a blocked write plan.
+Anything unresolved: the packet stays `IMPLEMENTED`, and the run report carries the findings. This workflow is the only one permitted to write `VERIFIED`, and it never does so with an open divergence, an unobservable side effect claimed as verified, or blocked cases left unaccounted.
 
 ## Handoff
 
-Report: the run directory path; coverage (cases run / excluded / blocked per ledger prefix); the verdict table; every divergence with its triage bucket and artifact folder; ledger corrections made; residual risks (unobservable side effects, blocked write scenarios, environment drift from pinned commits); and the resulting packet status. Point the user at `summary.md` for their own audit pass — the artifacts, not this report, are the evidence.
+Report: the run directory path; coverage (cases run / excluded / blocked per ledger prefix); the verdict table; every divergence with its triage bucket and artifact folder; ledger corrections made; residual risks (unobservable side effects, blocked cases, environment drift from pinned commits); and the resulting packet status. Point the user at `summary.md` for their own audit pass — the artifacts, not this report, are the evidence.
