@@ -112,6 +112,14 @@ Design from the caller's next decision:
 - return empty lists as arrays, not alternate object/null shapes;
 - preserve deterministic ordering or document that none is guaranteed.
 
+### Keep one canonical representation per resource concept
+
+A public resource concept has exactly one named representation per tier — typically a compact summary tier for lists and embedding, and a detail tier for the resource's own endpoints. Each tier is one DTO plus one pure mapper, defined once under the external surface and reused by every endpoint that returns the resource.
+
+When a response embeds another resource (badges inside a user, plans inside a subscription), compose the embedded resource's canonical summary representation through its mapper. Never hand-pick the embedded resource's fields inline: two endpoints shaping the same concept independently will drift in naming, grouping, and null semantics.
+
+Before designing a response, inventory the external surface for existing representations of every resource concept the response returns or embeds — including concepts that do not have their own endpoint yet. Reuse the tier that fits; if none fits, either evolve the canonical tier (the change appears everywhere it is used — check every consumer) or introduce a new named tier with a recorded decision. An endpoint that has no badges API yet still defines `BadgeSummary` as a canonical, reusable representation, so the future badges port composes it instead of inventing a second shape.
+
 Build the response through an explicit allowlisted DTO/mapper. Verify that the runtime serializer actually applies it. Swagger `type` metadata alone does not filter returned objects.
 
 Do not return raw database documents, internal exceptions, stack traces, opaque provider responses, or fields merely because the source endpoint returned them.
@@ -183,6 +191,7 @@ Write and inspect:
 Ask:
 
 - Can a developer choose the endpoint without knowing internal route names?
+- Could an agent consuming only the generated OpenAPI document — with no dashboard, no intuition, no support channel — build a correct request and interpret every response field?
 - Can they build the request without reading frontend code?
 - Can generated types represent only valid states where practical?
 - Can they tell which defaults the server applied?

@@ -75,6 +75,8 @@ Record each externally meaningful rule as a `B-###` row with a `repository@commi
 
 Read [public-contract-design.md](references/public-contract-design.md). Design the wire contract before implementation shapes: complete versioned URL, method, auth and tenant context, idempotency, every field's semantics, errors, pagination, and compatibility. The packet's `C-###`, `E-###`, and `X-###` tables define exactly what to record per parameter, field, error, and exposure decision.
 
+Before shaping the response, inventory existing canonical representations for every resource concept it returns or embeds; reuse the matching tier or record a `D-###` for a new one. An embedded resource composes the owning concept's summary representation — never an inline field selection (public-contract-design.md §6).
+
 Add an `S-###` threat entry for each caller-controlled value that reaches a fetcher, queue, file/media processor, redirect, provider, bulk query, or cross-tenant lookup; record the implemented controls plus the risk the testing workflow must verify.
 
 Write the three consumer examples — minimal valid request, one important optional combination, one invalid combination with its exact error — before coding. If they need internal knowledge to interpret, redesign the contract.
