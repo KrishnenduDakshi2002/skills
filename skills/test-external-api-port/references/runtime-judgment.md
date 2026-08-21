@@ -46,9 +46,10 @@ A differential write case is meaningful only when both paths start from equivale
 - seed exclusively through existing APIs (legacy, core, or external routes — they produce authentic documents); when no route can create the needed state, the case is `BLOCKED` with the missing seed named — never insert documents directly;
 - run legacy and new each from its own freshly twin-seeded state — never run the new path against state the legacy call just mutated;
 - record the seed in `case.json` precisely enough to reproduce it;
-- no cleanup is required or expected: data the run creates simply stays in the disposable tenant. List what was created (collections and ids) in the run artifacts so a human can prune later if they ever care — but never delete anything yourself.
+- created data must be plain, realistic platform data — sensible course titles, names, descriptions, and amounts, never random strings or "test123" filler; the test tenant should read like a real creator's account;
+- no cleanup is required or expected: data the run creates simply stays in the test tenant. List what was created (collections and ids) in the run artifacts so a human can prune later if they ever care — but never delete anything yourself.
 
-When write scenarios are blocked by config or tenant posture, they are reported as `BLOCKED` coverage gaps — a run without them cannot flip the packet to `VERIFIED` unless the packet's write behavior was excluded with a recorded justification.
+When a write scenario cannot run — no API route can create its seed, or the environment prevents it — it is reported as a `BLOCKED` coverage gap; a run with blocked write cases cannot flip the packet to `VERIFIED` unless the packet's write behavior was excluded with a recorded justification.
 
 ## 5. Persisted-state checks
 
