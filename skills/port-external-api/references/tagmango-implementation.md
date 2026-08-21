@@ -82,7 +82,9 @@ The shared service should own business decisions, named cross-field policies, tr
 
 Repositories should own typed persistence/query mechanics, not business decisions. Return typed domain/persistence data rather than an external or core response DTO. Reuse `BaseRepository` operations and current library repositories before adding methods. Add a custom method only for meaningful query, atomicity, invariant-default, or domain-mapping behavior; do not wrap a base method solely to rename it.
 
-Keep provider/queue/file clients behind injectable service dependencies so the capability remains reusable and independently observable by the later testing workflow. Keep public exposure policy in an explicit external mapper/DTO under the external API surface; a shared service result may contain domain data that one transport intentionally omits. An external-only request restriction must stay in the external adapter unless it is a real domain invariant that core must also enforce.
+Keep provider/queue/file clients behind injectable service dependencies so the capability remains reusable and independently observable by the later testing workflow. Keep public exposure policy in an explicit external mapper/DTO under the external API surface; a shared service result may contain domain data that one transport intentionally omits.
+
+Define each canonical public representation (summary and detail tiers) once, in the owning resource concept's module under the external surface, and export it for composition. An endpoint that embeds another concept imports that concept's summary DTO and mapper rather than shaping its fields locally — even when the embedded concept has no standalone endpoint yet. `libs/services` results stay domain-shaped; representation tiers are an external-surface concern. An external-only request restriction must stay in the external adapter unless it is a real domain invariant that core must also enforce.
 
 An external adapter/facade earns its existence only when it maps a public contract, applies external-only policy, or coordinates a meaningful boundary. Do not add a service that merely forwards one method.
 

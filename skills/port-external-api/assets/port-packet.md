@@ -135,6 +135,8 @@ Compatibility/version decision: <!-- Replace -->
 
 Envelope: <!-- Replace with exact runtime shape -->
 
+Resource representations reused or introduced: <!-- Replace with tier + owning module per returned/embedded resource concept, or None -->
+
 | ID | Public field | Type/format | Meaning and units | Optional/null/empty semantics | Source mapping | Consumer need | Evidence/rule |
 |---|---|---|---|---|---|---|---|
 | C-005 | <!-- Replace --> | <!-- Replace --> | <!-- Replace --> | <!-- Replace --> | <!-- Replace --> | <!-- Replace --> | <!-- B/V IDs --> |

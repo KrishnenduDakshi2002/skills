@@ -105,6 +105,7 @@ Check enforcement at the correct layer. DTO/schema validation cannot establish d
 - Verify explicit allowlisting at runtime.
 - Trace every field to a stable source and consumer need.
 - Check grouping, naming, identifiers, units, timestamp format, null policy, arrays, pagination metadata, and deterministic ordering.
+- Check every embedded resource composes its concept's canonical representation: diff the embedded shape against the standalone/summary representation elsewhere on the external surface, and require a recorded decision for any divergence or new tier.
 - Check calculated/estimated/pending/partial states are distinguishable.
 - Check create/update responses support the consumer's next action.
 - Check file, stream, redirect, and 204 paths bypass wrapping only as intended.
@@ -187,7 +188,9 @@ Flag:
 - invented abstraction with one call site and no real behavior;
 - a branch, default, or mutation in new domain code with no corresponding ledger rule or recorded decision;
 - an optimization or restructuring without an equivalence note covering ordering, rounding, projection, and null handling;
-- a missing or incomplete drift watchlist of legacy routes that keep a live duplicated implementation of the ported capability.
+- a missing or incomplete drift watchlist of legacy routes that keep a live duplicated implementation of the ported capability;
+- an embedded resource shaped inline instead of composing the owning concept's canonical representation mapper;
+- two public shapes for the same resource concept without a recorded tier decision.
 
 Clean architecture must not alter the source-backed business outcome. A refactor is not a license to “improve” legacy semantics silently.
 
