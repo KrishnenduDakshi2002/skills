@@ -16,6 +16,7 @@ ALLOWED_STATUSES = {
     "READY",
     "IMPLEMENTING",
     "IMPLEMENTED",
+    "VERIFIED",
 }
 
 REQUIRED_HEADINGS = (
@@ -48,11 +49,13 @@ GITHUB_ISSUE_PATTERN = re.compile(
 STAGE_STATUSES = {
     "design": {"READY", "IMPLEMENTING", "IMPLEMENTED"},
     "implementation": {"IMPLEMENTED"},
+    "testing": {"VERIFIED"},
 }
 
 CORE_MIGRATION_STAGE_STATUSES = {
     "design": {"DESIGNED", "IMPLEMENTED"},
     "implementation": {"IMPLEMENTED"},
+    "testing": {"IMPLEMENTED"},
 }
 
 PLACEHOLDER_PATTERNS = (
@@ -303,6 +306,39 @@ def validate_packet(args: argparse.Namespace) -> int:
         ):
             errors.append("Test files added or modified by this port must be None")
 
+    if args.stage == "testing":
+        test_section = section(content, "Test Traceability")
+        if not test_section:
+            errors.append("missing Test Traceability section; the testing workflow appends it")
+        test_ids = table_ids(test_section, "T")
+        if not test_ids:
+            errors.append("no test case IDs found in Test Traceability")
+        add_duplicate_errors(errors, test_ids, "test case")
+
+        error_ids = table_ids(contract_section, "E")
+        for rule_id in behavior_ids + validation_ids + threat_ids + error_ids:
+            if rule_id not in test_section:
+                errors.append(f"{rule_id} is not covered in Test Traceability")
+
+        test_statuses = table_last_cell_statuses(test_section, "T")
+        for test_id in test_ids:
+            row_status = test_statuses.get(test_id)
+            if row_status not in {"PASS", "EXCLUDED"}:
+                errors.append(
+                    f"{test_id} verdict {row_status or 'MISSING'} blocks the testing gate; "
+                    "expected PASS or EXCLUDED"
+                )
+
+        if not re.search(r"^Test run:\s*\S+", test_section, re.MULTILINE):
+            errors.append("Test Traceability must pin the Test run artifact directory")
+
+        if not re.search(
+            r"^Testing status:\s*VERIFIED\s*$",
+            section(content, "Handoff"),
+            re.MULTILINE,
+        ):
+            errors.append("Testing status must be VERIFIED at the testing gate")
+
     if errors:
         print(f"Port packet FAILED {args.stage} validation: {packet}", file=sys.stderr)
         for error in errors:
@@ -332,7 +368,7 @@ def build_parser() -> argparse.ArgumentParser:
 
     check_parser = subparsers.add_parser("check", help="validate a completed port packet gate")
     check_parser.add_argument("packet")
-    check_parser.add_argument("--stage", required=True, choices=("design", "implementation"))
+    check_parser.add_argument("--stage", required=True, choices=("design", "implementation", "testing"))
     check_parser.set_defaults(handler=validate_packet)
 
     return parser

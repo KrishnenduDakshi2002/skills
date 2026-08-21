@@ -130,10 +130,10 @@ python3 <skill-directory>/scripts/port_packet.py check <packet-path> --stage des
 python3 <skill-directory>/scripts/port_packet.py check <packet-path> --stage implementation
 ```
 
-Stop at `IMPLEMENTED`. Preserve the packet, pins, ledgers, examples, and unresolved runtime risks for the later testing or audit workflow; do not invoke those workflows automatically.
+Stop at `IMPLEMENTED`. Preserve the packet, pins, ledgers, examples, and unresolved runtime risks for `test-external-api-port` (runtime verification and the only workflow allowed to set `VERIFIED`) or `audit-external-api-port`; do not invoke either automatically.
 
 ## Handoff
 
-Report: the endpoint and consumer goal; issue URL with resolved grill decisions; source pins; packet path and status; public-contract summary; preserved behavior and newly backend-enforced frontend rules; files changed; shared service/repository paths and every consumer rewired to them; `M-###` coverage and the exact work a future core adapter still needs; the drift watchlist — every legacy route that keeps a live duplicated implementation of this capability until core replacement; equivalence notes for any optimization; check outcomes; deferred-testing risks; and open decisions or deviations.
+Report: the endpoint and consumer goal; issue URL with resolved grill decisions; source pins; packet path and status; public-contract summary; preserved behavior and newly backend-enforced frontend rules; files changed; shared service/repository paths and every consumer rewired to them; `M-###` coverage and the exact work a future core adapter still needs; the drift watchlist — every legacy route that keeps a live duplicated implementation of this capability until core replacement, each entry directly callable as `<apps/api | core-api> METHOD /full/path`; equivalence notes for any optimization; check outcomes; deferred-testing risks; and open decisions or deviations.
 
 Separate confirmed parity from inference. Never describe a partial port as complete.
