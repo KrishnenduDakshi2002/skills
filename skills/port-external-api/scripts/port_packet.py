@@ -279,6 +279,16 @@ def validate_packet(args: argparse.Namespace) -> int:
         if re.search(r"^\|[^\n]*\|\s*(FAIL|BLOCKED)\s*\|", checks_section, re.MULTILINE):
             errors.append("implementation checks still contain FAIL or BLOCKED outcomes")
 
+        naming_check_match = re.search(
+            r"^\|\s*New-file naming audit\s*\|[^|\n]*\|\s*([^|\n]+?)\s*\|",
+            checks_section,
+            re.MULTILINE | re.IGNORECASE,
+        )
+        if naming_check_match is None:
+            errors.append("Implementation Checks must include New-file naming audit")
+        elif naming_check_match.group(1).strip().upper() != "PASS":
+            errors.append("New-file naming audit must have a PASS outcome")
+
         handoff_section = section(content, "Handoff")
         if not re.search(
             r"^Testing status:\s*DEFERRED TO SEPARATE WORKFLOW\s*$",

@@ -165,6 +165,7 @@ Read [tagmango-implementation.md](references/tagmango-implementation.md) before 
 - Use explicit allowlists for public responses. Never spread a database document or internal DTO into an external response.
 - Preserve side-effect order, retry safety, atomicity, and legacy failure semantics unless the packet records an approved change.
 - Follow current repository standards for every touched file even when the source is legacy debt.
+- Name every file created by the port with a lowercase kebab-case descriptive base and the repository's conventional dot-delimited role suffixes, for example `create-mango.service.ts`, `create-mango-request.dto.ts`, or `mango.repository.ts`. A single lowercase token such as `index.ts` is valid. Do not rename untouched legacy files solely for this rule; document any repository-, framework-, or generator-mandated exception in the packet.
 
 Implement in narrow behavior slices. Do not stage, commit, push, publish docs, or mutate trackers unless the user explicitly requests that action.
 
@@ -179,7 +180,7 @@ Map every `B-###`, `V-###`, `G-###`, `M-###`, and `S-###` rule to an `H-###` imp
 - any behavior that remains runtime-unverified;
 - the source evidence and risk context the later testing workflow will need.
 
-Run proportionate non-test implementation checks such as formatting, lint, typecheck, build, generated OpenAPI inspection, and final diff/architecture review. Choose commands that do not invoke test targets; when such a command is unavailable, record the limitation instead of broadening this workflow.
+Run proportionate non-test implementation checks such as formatting, lint, typecheck, build, generated OpenAPI inspection, and final diff/architecture review. Inspect every added path and scoped untracked path for the new-file naming rule, then record `New-file naming audit` as `PASS` with any justified exceptions in the packet. Choose commands that do not invoke test targets; when such a command is unavailable, record the limitation instead of broadening this workflow.
 
 Set the packet to `IMPLEMENTED`, not `VERIFIED`. State clearly that behavioral and runtime certification is deferred. Implementation traceability demonstrates where the intended behavior was placed; it does not prove that behavior through execution.
 

@@ -261,6 +261,7 @@ Set packet status to `BLOCKED` while any material decision is open.
 | Typecheck | <!-- Replace --> | <!-- PASS/FAIL/SKIPPED --> | <!-- Replace --> |
 | Build | <!-- Replace --> | <!-- PASS/FAIL/SKIPPED --> | <!-- Replace --> |
 | Generated OpenAPI static inspection | <!-- Replace --> | <!-- PASS/FAIL/SKIPPED --> | <!-- Replace --> |
+| New-file naming audit | Added paths in scoped diff and scoped untracked paths | <!-- PASS/FAIL/SKIPPED --> | <!-- Replace with exceptions or None --> |
 | Final diff and architecture review | <!-- Replace --> | <!-- PASS/FAIL/SKIPPED --> | <!-- Replace --> |
 
 ## Handoff

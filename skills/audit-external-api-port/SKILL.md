@@ -98,6 +98,7 @@ Confirm the target preserves business behavior through maintainable current arch
 - public mapper/DTO owns response shaping;
 - shared canonical services/utilities are reused;
 - legacy controllers are not called or copied wholesale;
+- every file added by the port has a lowercase kebab-case descriptive base with established dot-delimited role suffixes; untouched legacy names are out of scope, and any repository-, framework-, or generator-mandated exception is documented;
 - no shallow facade, response-shaped domain service, cast-heavy boundary, or duplicated error mapping was added.
 
 Verify that every scoped `B-###` and `V-###` rule appears in an `M-###` row, then trace each row independently from legacy behavior into shared service/repository code, external adapter policy, the current or future core mapping, and tests. When no core route exists, verify that adding it would require only authentication, DTO/mapping, and controller/module wiring. If it would require a new business rule, repository query, state transition, side-effect path, or response-shaped rewrite of the shared model, the readiness claim fails.

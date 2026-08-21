@@ -160,6 +160,8 @@ Audit core replacement readiness explicitly:
 
 If future core implementation still needs new domain or repository behavior, record a `P1` architecture finding and reject the readiness claim. Do not require a speculative core endpoint when none exists; require a complete shared capability and an evidence-backed transport-only mapping.
 
+Inspect every file added in the actual base-to-head diff, plus any scoped untracked file included in a local audit. Its descriptive base must be lowercase kebab case, with established dot-delimited role suffixes permitted: `create-mango.service.ts`, `create-mango-request.dto.ts`, and `mango.repository.ts` comply, as does a conventional single lowercase token such as `index.ts`. Flag snake_case, camelCase, PascalCase, spaces, and unexplained naming exceptions. Do not flag untouched legacy filenames. Accept a repository-, framework-, or generator-mandated exception only when the exact path and constraint are documented in the port packet.
+
 Flag:
 
 - controller business logic or direct DB access;
@@ -179,6 +181,7 @@ Flag:
 - branching on `external` versus `core` inside domain logic instead of modeling real actor/capability policy;
 - HTTP DTOs, exceptions, envelopes, or external exposure policy imported into the shared service;
 - non-atomic multi-write behavior;
+- a newly added filename that violates the kebab-case rule or has an undocumented exception;
 - unrelated cleanup widening the port;
 - invented abstraction with one call site and no real behavior.
 

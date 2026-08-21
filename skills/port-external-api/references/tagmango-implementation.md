@@ -84,6 +84,12 @@ Keep provider/queue/file clients behind injectable service dependencies so the c
 
 An external adapter/facade earns its existence only when it maps a public contract, applies external-only policy, or coordinates a meaningful boundary. Do not add a service that merely forwards one method.
 
+### Name every new file in kebab case
+
+Every file created by the port must use a lowercase kebab-case descriptive base. Keep established dot-delimited role suffixes, so names such as `create-mango.service.ts`, `create-mango-request.dto.ts`, `external-mango.controller.ts`, and `mango.repository.ts` comply. A conventional single lowercase token such as `index.ts` also complies. Do not introduce snake_case, camelCase, PascalCase, spaces, or ad hoc abbreviations in new filenames.
+
+Do not rename an untouched legacy file merely to satisfy this rule. A repository-, framework-, or generator-mandated filename may be retained only when the exact constraint and path are recorded as an exception in the port packet. Before handoff, inspect every added path in the scoped diff and every scoped untracked path; record the result in the `New-file naming audit` implementation check.
+
 When porting from `apps/api`:
 
 1. Characterize observable behavior before restructuring.
@@ -165,4 +171,4 @@ Generate the external OpenAPI document with the repository's preview/generation 
 
 Do not turn this phase into runtime or behavioral certification. Record the Nest validation, auth/tenant, response-mapping, and global-interceptor seams that the later testing workflow must exercise, together with any runtime assumptions that remain unverified.
 
-Run `git diff --check` and review the final target diff against the port packet. Complete the `H-###` implementation traceability and implementation-check results, mark the packet `IMPLEMENTED`, and leave changes unstaged unless the user explicitly asks to stage or commit.
+Run `git diff --check`, inspect every added and scoped untracked filename, and review the final target diff against the port packet. The `New-file naming audit` must be `PASS`; list any justified mandated exceptions in its evidence cell, or write `None`. Complete the `H-###` implementation traceability and implementation-check results, mark the packet `IMPLEMENTED`, and leave changes unstaged unless the user explicitly asks to stage or commit.
