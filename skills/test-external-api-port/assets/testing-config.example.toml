@@ -3,10 +3,12 @@
 # below is a secret. Keys never appear in artifacts; captures show <redacted>.
 
 [hosts]
-# Base URLs before any global prefix/version. Deployed or local — record which.
-external_api = ""   # e.g. "https://staging-core.tagmango.com" (external surface)
-legacy_api   = ""   # apps/api deployment used as the legacy oracle
-core_api     = ""   # apps/core-api deployment
+# Base URLs before any global prefix/version. The skill ASKS where each server
+# runs (local "http://localhost:<port>" or deployed
+# "https://staging-core.tagmango.com") — it never assumes. Answers persist here.
+external_api = ""   # external surface (apps/core-api serve)
+legacy_api   = ""   # apps/api server used as the legacy oracle
+core_api     = ""   # apps/core-api server
 
 [auth]
 external_custom_host = ""   # tenant/custom-host URL bound to the API key below

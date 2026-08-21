@@ -24,6 +24,7 @@ REQUIRED_HEADINGS = (
     "GitHub Issue Intake",
     "Source Authorities",
     "Consumer and Existing Conventions",
+    "Repository Pattern Conformity",
     "Behavior Ledger",
     "Frontend Rule Classification",
     "Validation Matrix",
@@ -42,6 +43,7 @@ REQUIRED_HEADINGS = (
 )
 
 REQUIRED_GRILL_IDS = {f"G-{index:03d}" for index in range(1, 9)}
+REQUIRED_PATTERN_IDS = {f"P-{index:03d}" for index in range(1, 11)}
 GITHUB_ISSUE_PATTERN = re.compile(
     r"https://github\.com/[^/\s]+/[^/\s]+/issues/[1-9]\d*(?:[/?#].*)?"
 )
@@ -174,6 +176,7 @@ def validate_packet(args: argparse.Namespace) -> int:
     behavior_ids = table_ids(section(content, "Behavior Ledger"), "B")
     validation_ids = table_ids(section(content, "Validation Matrix"), "V")
     grill_ids = table_ids(section(content, "Contract Design Grill"), "G")
+    pattern_ids = table_ids(section(content, "Repository Pattern Conformity"), "P")
     exposure_ids = table_ids(section(content, "Field Exposure Ledger"), "X")
     threat_ids = table_ids(section(content, "Threat and Abuse Cases"), "S")
     migration_section = section(content, "Core Migration Readiness")
@@ -185,6 +188,7 @@ def validate_packet(args: argparse.Namespace) -> int:
         (behavior_ids, "behavior"),
         (validation_ids, "validation"),
         (grill_ids, "contract grill"),
+        (pattern_ids, "pattern conformity"),
         (exposure_ids, "exposure"),
         (threat_ids, "threat"),
         (migration_ids, "core migration"),
@@ -197,6 +201,19 @@ def validate_packet(args: argparse.Namespace) -> int:
     missing_grill_ids = sorted(REQUIRED_GRILL_IDS.difference(grill_ids))
     if missing_grill_ids:
         errors.append(f"missing required contract grill IDs: {', '.join(missing_grill_ids)}")
+
+    missing_pattern_ids = sorted(REQUIRED_PATTERN_IDS.difference(pattern_ids))
+    if missing_pattern_ids:
+        errors.append(f"missing required pattern conformity IDs: {', '.join(missing_pattern_ids)}")
+
+    pattern_statuses = table_last_cell_statuses(section(content, "Repository Pattern Conformity"), "P")
+    for pattern_id in pattern_ids:
+        pattern_status = pattern_statuses.get(pattern_id, "")
+        if pattern_status != "ADOPTED" and not pattern_status.startswith("DEVIATION"):
+            errors.append(
+                f"{pattern_id} pattern decision {pattern_status or 'MISSING'} is unresolved; "
+                "expected ADOPTED or DEVIATION (D-###)"
+            )
 
     grill_section = section(content, "Contract Design Grill")
     if re.search(
@@ -273,7 +290,7 @@ def validate_packet(args: argparse.Namespace) -> int:
         errors.append("material decisions remain open")
 
     handoff_section = section(content, "Implementation Traceability")
-    for rule_id in behavior_ids + validation_ids + grill_ids + migration_ids + threat_ids:
+    for rule_id in behavior_ids + validation_ids + grill_ids + pattern_ids + migration_ids + threat_ids:
         if rule_id not in handoff_section:
             errors.append(f"{rule_id} is not mapped in Implementation Traceability")
 
@@ -348,7 +365,7 @@ def validate_packet(args: argparse.Namespace) -> int:
     print(f"Port packet PASSED {args.stage} validation: {packet}")
     print(
         f"status={status} issue_requirements={len(issue_ids)} behaviors={len(behavior_ids)} "
-        f"validations={len(validation_ids)} grill_decisions={len(grill_ids)} "
+        f"validations={len(validation_ids)} grill_decisions={len(grill_ids)} patterns={len(pattern_ids)} "
         f"migrations={len(migration_ids)} exposures={len(exposure_ids)} "
         f"threats={len(threat_ids)} handoffs={len(handoff_ids)}"
     )

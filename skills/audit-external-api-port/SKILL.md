@@ -49,6 +49,8 @@ Verify the shared-capability shape: controller owns parsing/auth and delegates o
 
 Independently trace every scoped `B-###`/`V-###` rule through its `M-###` row into shared code, adapters, and tests. If adding a core route would need more than authentication, DTO/mapping, and wiring, the readiness claim fails.
 
+Verify pattern conformity against the repository, not the packet's word: each `P-###` row's exemplar must be a recent intentional port, the named primitive must actually cover the concern (cache keys, TTL units, and serialization — not just method signatures), and the implementation must match its `ADOPTED` decision. A new wrapper, adapter, parser, pipe, interface, or factory with an unproven `P-###` justification is a finding.
+
 Then reverse-trace: flag any branch, default, or mutation in new domain code with no corresponding ledger rule or recorded decision — unmapped logic is invented behavior. Verify any optimization carries an equivalence note covering ordering, rounding, projection, and null handling, and that the drift watchlist names every legacy route keeping a live duplicated implementation as a directly callable `<apps/api | core-api> METHOD /full/path` entry — prose descriptions the testing workflow cannot call verbatim are a finding.
 
 ## 7. Audit tests and documentation

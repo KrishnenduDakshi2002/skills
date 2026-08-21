@@ -17,9 +17,14 @@ This workflow produces artifacts only: no product code, no committed test files,
 
 ## 1. Resolve the config
 
-Read `.external-api-testing.toml` at the target repository root; when absent, create it from [testing-config.example.toml](assets/testing-config.example.toml) and ensure it is gitignored. For every missing or placeholder required value, ask the user before sending any request, then persist the answers back to the file: the external API base URL; the legacy (`apps/api`) and core-api base URLs; **the custom host URL and the external API key issued for it — asked together, since the key binds to that host**; the env-var names holding legacy/core auth tokens; tenant identifier and disposability; and `allow_write_scenarios`. Do not ask about Mongo — the testing MCP connection is already connected.
+Read `.external-api-testing.toml` at the target repository root; when absent, create it from [testing-config.example.toml](assets/testing-config.example.toml) and ensure it is gitignored. Resolve every required value below before sending any request. A value in the config file is an answer; anything else — a port you found in serve targets, a server you noticed running, a URL from a previous conversation — is not. **Never write or use a value the user did not give you.**
 
-The API key lives only in this gitignored file; artifacts and reports record credential values as `<redacted>`. Never guess a host and never proceed on a placeholder.
+- **Server locations — always asked.** For each host missing from the config (external API, legacy `apps/api`, core-api), ask the user where that server is running: local or deployed, and the exact URL. You may inspect the repo's serve configuration first, but only to *offer* `http://localhost:<port>` as candidate options inside the question — discovery informs the question, never replaces it.
+- **Custom host and its API key — asked together**, since the key binds to that host.
+- Also ask when missing: the env-var names holding legacy/core auth tokens, the tenant identifier and its disposability, and `allow_write_scenarios`.
+- **Never asked:** the Mongo connection — the testing MCP connection is already connected.
+
+Persist every answer back to the file, marking each host local or deployed. The API key lives only in this gitignored file; artifacts and reports record credential values as `<redacted>`. Never proceed on a placeholder. Preflight (§4) then independently verifies every confirmed host responds and exposes the ported endpoint — a listening-but-wrong server fails preflight, never a comparison.
 
 ## 2. Ingest the packet
 
@@ -48,13 +53,13 @@ Before case one, verify and record in the run manifest:
 - deployed identity of each server (version/commit from health or docs endpoints when discoverable; otherwise URL plus date);
 - write posture: write scenarios run only when `allow_write_scenarios` is true *and* the tenant is disposable; otherwise execute the read plan and report the write cases as blocked, not skipped silently;
 - side-effect posture: deployed servers fire real queues, notifications, and provider calls — list every side-effect-bearing case and confirm the environment neuters or tolerates them before running any;
-- Mongo: use the already-connected testing MCP connection; confirm with one harmless read that it is the testing environment. **Never touch a production database connection**, even read-only.
+- Mongo: use the already-connected testing MCP connection for reads only; confirm with one harmless read that it is the testing environment. **Never touch a production database connection**, even read-only, and never write through Mongo at all — writes are API-only.
 
 ## 5. Execute and capture
 
 Follow [artifact-schema.md](references/artifact-schema.md) exactly: one run directory, one folder per case, fixed file names — `case.json`, `request.json`, `response.json`, `legacy/`, `db.json`, `side-effects.json`, `verdict.json` — plus `manifest.json` and a human-first `summary.md`.
 
-Both paths of a differential case must run against equivalent state: seed through the APIs themselves where a route exists (it produces authentic documents), reset or use twin-seeded state between the two executions, and never run the new path against state the legacy call just mutated. Capture targeted before/after documents via the testing Mongo connection whenever a rule's expected outcome is persisted state. Apply the configured inter-request delay; deployed environments are shared.
+Both paths of a differential case must run against equivalent state: seed through the APIs themselves (authentic documents), giving each path its own freshly twin-seeded state, and never run the new path against state the legacy call just mutated. The Mongo MCP connection is read-only verification: capture targeted before/after documents with it whenever a rule's expected outcome is persisted state, but every write — seed and scenario — goes through the APIs only, never through Mongo. No cleanup: run-created data stays in the disposable tenant, listed in the artifacts. Apply the configured inter-request delay; deployed environments are shared.
 
 ## 6. Judge and triage
 

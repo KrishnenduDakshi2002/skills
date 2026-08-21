@@ -44,7 +44,7 @@ Inspect these current seams rather than assuming their behavior:
 - `apps/core-api/src/utils/decorator/genericApi.decorator.ts` for `ExternalApi` and documentation behavior;
 - `apps/core-api/src/api-modules/external/external-api-operation-ids.ts` for stable operation IDs;
 - `apps/core-api/src/shared/middleware/externalAuth.middleware.ts` for API-key, host, and tenant binding;
-- `apps/core-api/src/swagger/external-api-document.ts` and `apps/core-api/src/main.ts` for generated docs, envelope descriptions, prefixes, and URI versioning;
+- `apps/core-api/src/swagger/external-api-document.ts` and `apps/core-api/src/main.ts` for generated docs, envelope descriptions, prefixes, and URI versioning — `buildExternalApiDocumentOptions` is also the tag registry: every tag a controller uses must be `.addTag(...)`-registered there;
 - response and DTO interceptors/services for the actual runtime envelope and projection behavior;
 - the nearest external controller, DTO, mapper, module, service, and integration tests for current conventions.
 
@@ -87,6 +87,25 @@ Keep provider/queue/file clients behind injectable service dependencies so the c
 Define each canonical public representation (summary and detail tiers) once, in the owning resource concept's module under the external surface, and export it for composition. An endpoint that embeds another concept imports that concept's summary DTO and mapper rather than shaping its fields locally — even when the embedded concept has no standalone endpoint yet. `libs/services` results stay domain-shaped; representation tiers are an external-surface concern. An external-only request restriction must stay in the external adapter unless it is a real domain invariant that core must also enforce.
 
 An external adapter/facade earns its existence only when it maps a public contract, applies external-only policy, or coordinates a meaningful boundary. Do not add a service that merely forwards one method.
+
+### Prove the pattern before building it (P-001–P-010)
+
+"Check existing patterns" means inspecting recent intentional external ports — not merely nearby files, which may carry legacy debt. Resolve each packet conformity row against a pinned exemplar before implementing that concern:
+
+- **Validation and transformation (P-001):** when a DTO decorator transforms values (e.g., ObjectId arrays), the DTO declares the transformed type (`Types.ObjectId[]`) and controllers never transform again; reuse shared validators instead of endpoint-local pipes.
+- **Representations (P-002):** returned or embedded resources compose the canonical summary/detail DTOs (see §4 representation rules); derive tiers from existing DTOs rather than restating fields.
+- **Envelope and serialization (P-003):** Swagger declares the result DTO directly; the global layer owns the runtime envelope — do not re-wrap or re-document it per endpoint.
+- **Errors (P-004):** reuse the shared error registry and definition helpers (`AppErrorMap`, `getErrDefinition(...)`) and the single established controller mapping boundary.
+- **Dependency injection (P-005):** `LibServicesModule` and `LibRepositoriesModule` own shared construction and exports; feature modules consume, never reconstruct.
+- **Clients and shared state (P-006):** cache reuse means keys, TTL units, and serialization format — not just a matching method signature; reuse shared Redis/provider/queue/file clients and preserve their conventions.
+- **Schemas (P-007):** schema ownership is architectural — repository registrations use the established schema library (`legacy-schemas`); a missing schema is migrated with fidelity (fields, indexes, timestamps, model identity), never redefined ad hoc.
+- **Type derivation (P-008):** derive projections from existing domain/persistence types with `Pick`/`Omit` instead of restating fields that will drift.
+- **Terminology (P-009):** public naming follows product terminology (e.g., `mangoes`), regardless of legacy storage names; storage terminology survives only inside persistence mechanics.
+- **Limits as policy (P-010):** numeric limits, defaults, and intervals are policies, not constants sprinkled through decorators — one reusable owner with a semantic name, units, and rationale.
+
+A new wrapper, adapter, parser, pipe, interface, or factory is presumed unnecessary until repository inspection proves no existing primitive covers the concern; record the proof in the P-### row.
+
+The gate points both ways: you are building the exemplar the next port will pin. Every primitive this port creates — policy, representation tier, repository method, error definition — goes to the shared module or registry that owns its concern, named for the domain rather than the endpoint, so the next port's P-### inspection adopts it unchanged instead of duplicating it.
 
 ### Name every new file in kebab case
 
@@ -143,6 +162,7 @@ For each endpoint:
 - register the controller/module in the external module tree;
 - apply external auth middleware/guards consistently;
 - use the central operation ID registry;
+- when the port introduces a new external module or tag, register the tag with a consumer-facing description in `buildExternalApiDocumentOptions` (`apps/core-api/src/swagger/external-api-document.ts`) — a controller tag missing from this registry breaks documentation construction;
 - document summaries, detailed semantics, defaults, restrictions, errors, and realistic examples;
 - annotate every request/response property with correct types and formats;
 - ensure static routes cannot be shadowed by dynamic parameters;
@@ -165,6 +185,7 @@ Generate the external OpenAPI document with the repository's preview/generation 
 
 - actual path and method;
 - operation ID;
+- every controller tag present in the document's registered tag list with its description;
 - security and required headers;
 - parameter location and encoding;
 - request requiredness and conditional rules;

@@ -43,16 +43,16 @@ Treat absent, `null`, `false`, `0`, empty string, empty array, and empty object 
 
 A differential write case is meaningful only when both paths start from equivalent state:
 
-- seed through existing APIs where a route exists (authentic documents); record documented direct inserts as the fallback;
-- run legacy and new from a reset or twin-seeded state — never run the new path against state the legacy call just mutated;
+- seed exclusively through existing APIs (legacy, core, or external routes — they produce authentic documents); when no route can create the needed state, the case is `BLOCKED` with the missing seed named — never insert documents directly;
+- run legacy and new each from its own freshly twin-seeded state — never run the new path against state the legacy call just mutated;
 - record the seed in `case.json` precisely enough to reproduce it;
-- clean up only data this run created, only in a disposable tenant, and record every cleanup action in the artifacts.
+- no cleanup is required or expected: data the run creates simply stays in the disposable tenant. List what was created (collections and ids) in the run artifacts so a human can prune later if they ever care — but never delete anything yourself.
 
 When write scenarios are blocked by config or tenant posture, they are reported as `BLOCKED` coverage gaps — a run without them cannot flip the packet to `VERIFIED` unless the packet's write behavior was excluded with a recorded justification.
 
 ## 5. Persisted-state checks
 
-Use the testing Mongo MCP connection for targeted before/after reads whenever a rule's expected outcome is persisted state: the exact documents, the fields written, the fields *not* written, timestamps' presence, and clearing semantics (`null` vs removed). Query narrowly by the ids the case created or addressed; never dump collections. The Mongo connection is read-only in spirit — the only permissible mutation is §4 cleanup.
+Use the testing Mongo MCP connection for targeted before/after reads whenever a rule's expected outcome is persisted state: the exact documents, the fields written, the fields *not* written, timestamps' presence, and clearing semantics (`null` vs removed). Query narrowly by the ids the case created or addressed; never dump collections. The Mongo connection is strictly read-only: reads happen via APIs and MCP, but every write — seeding and the scenario itself — happens via APIs only. No insert, update, or delete ever goes through Mongo, without exception.
 
 ## 6. Side effects
 
