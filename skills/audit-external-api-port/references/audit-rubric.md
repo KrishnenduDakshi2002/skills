@@ -234,6 +234,7 @@ Use real Mongo/repositories when DB behavior matters and fake external infrastru
 - Pagination, units, timezones, retry, idempotency, and errors are documented where relevant.
 - Overview envelope/auth/rate information matches runtime.
 - The endpoint appears in the intended docs surface only.
+- Any new module/tag is registered with a description in the external document builder's tag registry; an unregistered controller tag breaks documentation construction.
 
 ## 9. Certification bar
 

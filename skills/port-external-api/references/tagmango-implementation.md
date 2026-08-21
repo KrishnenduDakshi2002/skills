@@ -44,7 +44,7 @@ Inspect these current seams rather than assuming their behavior:
 - `apps/core-api/src/utils/decorator/genericApi.decorator.ts` for `ExternalApi` and documentation behavior;
 - `apps/core-api/src/api-modules/external/external-api-operation-ids.ts` for stable operation IDs;
 - `apps/core-api/src/shared/middleware/externalAuth.middleware.ts` for API-key, host, and tenant binding;
-- `apps/core-api/src/swagger/external-api-document.ts` and `apps/core-api/src/main.ts` for generated docs, envelope descriptions, prefixes, and URI versioning;
+- `apps/core-api/src/swagger/external-api-document.ts` and `apps/core-api/src/main.ts` for generated docs, envelope descriptions, prefixes, and URI versioning — `buildExternalApiDocumentOptions` is also the tag registry: every tag a controller uses must be `.addTag(...)`-registered there;
 - response and DTO interceptors/services for the actual runtime envelope and projection behavior;
 - the nearest external controller, DTO, mapper, module, service, and integration tests for current conventions.
 
@@ -162,6 +162,7 @@ For each endpoint:
 - register the controller/module in the external module tree;
 - apply external auth middleware/guards consistently;
 - use the central operation ID registry;
+- when the port introduces a new external module or tag, register the tag with a consumer-facing description in `buildExternalApiDocumentOptions` (`apps/core-api/src/swagger/external-api-document.ts`) — a controller tag missing from this registry breaks documentation construction;
 - document summaries, detailed semantics, defaults, restrictions, errors, and realistic examples;
 - annotate every request/response property with correct types and formats;
 - ensure static routes cannot be shadowed by dynamic parameters;
@@ -184,6 +185,7 @@ Generate the external OpenAPI document with the repository's preview/generation 
 
 - actual path and method;
 - operation ID;
+- every controller tag present in the document's registered tag list with its description;
 - security and required headers;
 - parameter location and encoding;
 - request requiredness and conditional rules;
