@@ -64,6 +64,15 @@ core_api     = @hosts.core_api@   # apps/core-api server
 [auth]
 external_custom_host = @auth.external_custom_host@   # the tenant all scenarios run against
 external_api_key     = @auth.external_api_key@   # external API key bound to that custom host
+
+[provenance]
+# Written only by `testing_env.py set`. A value whose entry here is not "user"
+# was never confirmed in a session and is treated as a question, not an answer.
+external_api         = @prov.external_api@
+legacy_api           = @prov.legacy_api@
+core_api             = @prov.core_api@
+external_custom_host = @prov.external_custom_host@
+external_api_key     = @prov.external_api_key@
 """
 
 
@@ -94,9 +103,12 @@ def parse_config(text: str) -> dict:
 
 def render_config(data: dict) -> str:
     text = TEMPLATE
+    provenance = data.get("provenance", {})
     for section, key, _kind, _question, _redact in FIELDS:
         value = str(data.get(section, {}).get(key, "") or "")
         text = text.replace(f"@{section}.{key}@", '"' + value.replace('"', "") + '"')
+        stamp = "user" if value and provenance.get(key) == "user" else ""
+        text = text.replace(f"@prov.{key}@", f'"{stamp}"')
     return text
 
 
@@ -133,13 +145,20 @@ def host_kind(value: str) -> str:
 
 def missing_fields(data: dict) -> list[tuple[str, str, str]]:
     missing = []
-    for section, key, kind, question, _redact in FIELDS:
+    provenance = data.get("provenance", {})
+    for section, key, kind, question, redact in FIELDS:
         value = data.get(section, {}).get(key, "")
         if not isinstance(value, str) or not value.strip():
             missing.append((section, key, question))
         elif kind == "url" and not valid_url(value):
             missing.append((section, key,
                             f"The recorded value for {section}.{key} is not a valid http(s) URL. {question}"))
+        elif provenance.get(key) != "user":
+            shown = "<a recorded key>" if redact else repr(value.strip())
+            missing.append((section, key,
+                            f"The config records {shown} for {section}.{key}, but it was never confirmed by the "
+                            f"user (leftover from an older file or session). {question} "
+                            "Record the confirmed value with `set` even if it is identical."))
     return missing
 
 
@@ -188,6 +207,7 @@ def cmd_set(args: argparse.Namespace) -> int:
         print(f"ERROR: {args.key} must be a full http(s):// base URL, got {value!r}", file=sys.stderr)
         return 2
     data.setdefault(section, {})[key] = value
+    data.setdefault("provenance", {})[key] = "user"
     path.write_text(render_config(data), encoding="utf-8")
     shown = "<set>" if (section, key) == ("auth", "external_api_key") else value
     print(f"Recorded {section}.{key} = {shown}")
@@ -257,6 +277,8 @@ def cmd_preflight(args: argparse.Namespace) -> int:
                          "delay_between_requests_ms": DELAY_BETWEEN_REQUESTS_MS,
                          "artifacts_dir": ARTIFACTS_DIR},
     }
+    print(f"TARGET: tenant {data['auth']['external_custom_host']} via {data['hosts']['external_api']} — "
+          "the user must have reviewed and approved the READY table before this point.")
     print("PREFLIGHT PASSED — manifest seed (save into the run's manifest.json):")
     print(json.dumps(manifest, indent=2))
     for name, present in tokens.items():
