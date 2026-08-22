@@ -8,6 +8,7 @@
 4. Per-case files
 5. Redaction rules
 6. summary.md
+7. Derived HTML views
 
 ## 1. Run directory
 
@@ -15,6 +16,7 @@
 <artifacts-dir>/<operation-slug>/test-runs/<run-id>/
   manifest.json
   summary.md
+  report.html          # derived view — generated, never hand-written (§7)
   T-001-<case-slug>/
   T-002-<case-slug>/
   ...
@@ -81,3 +83,13 @@ Human-first, in this order:
 3. Divergences in full: what was compared, what differed, triage bucket, follow-up owner.
 4. Residual risks: `NOT_OBSERVABLE` effects, blocked cases, environment drift.
 5. A short "what to eyeball" list for the human audit pass — typically the exposure-sensitive responses (confirm absent fields are absent) and the error-shape responses.
+
+## 7. Derived HTML views
+
+`scripts/render_report.py <run-dir>` generates three files, all purely a reading layer over the JSON above — they contain nothing that isn't in the artifacts, and the artifacts are never changed to suit them:
+
+- `report.html` in the run directory — self-contained (no network, no external assets), openable straight from disk: stat tiles for coverage, the filterable verdict table, expandable per-case detail (request, response, legacy capture, db before/after, side effects, verdict with citations, a copyable `curl`), and computed residual risks. If the manifest's coverage totals disagree with the case folders on disk, the page flags it — the folders win.
+- `test-runs/index.html` per operation — every run with its verdict counts, newest first.
+- `index.html` at the artifacts root — latest-run verdicts across all operations.
+
+Rules: regenerate after any artifact change; never edit the HTML by hand; never treat the report as evidence (the JSON files are); the renderer applies its own redaction pass on top of §5, but that is a backstop — secrets still must never reach the artifacts in the first place. Like everything else here, the HTML stays in the scratch location, uncommitted.

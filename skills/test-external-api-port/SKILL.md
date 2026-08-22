@@ -1,7 +1,7 @@
 ---
 name: test-external-api-port
-description: Runtime-verify an IMPLEMENTED external API port by executing its packet scenarios against live external, legacy, and core servers. Captures per-case JSON artifacts for human audit, diffs outcomes against the legacy oracle and persisted state, and flips the packet to VERIFIED or reports divergences. Writes no product code and no committed test files.
-argument-hint: <packet-path | operation-slug>
+description: Runtime-verify an IMPLEMENTED external API port by executing its packet scenarios against live external, legacy, and core servers. Captures per-case JSON artifacts for human audit, diffs outcomes against the legacy oracle and persisted state, and flips the packet to VERIFIED or reports divergences. Writes no product code and no committed test files. With --report, only (re)renders the HTML reports over existing run artifacts and executes nothing.
+argument-hint: <packet-path | operation-slug> [--report [run-id]]
 disable-model-invocation: true
 ---
 
@@ -19,6 +19,15 @@ This workflow produces artifacts only: no product code, no committed test files,
 
 Packet statuses are a closed set — `DISCOVERY`, `BLOCKED`, `READY`, `IMPLEMENTING`, `IMPLEMENTED`, `VERIFIED` — and this workflow may write exactly one of them: `VERIFIED`, only at the §7 gate. While testing runs, the packet stays `IMPLEMENTED`. Never invent a status (`VERIFYING`, `TESTING`, `IN_PROGRESS` do not exist); the validator rejects them and the run's state lives in the run artifacts, not the packet status.
 
+## 0. Report-only mode (`--report`)
+
+When the arguments include `--report`, this invocation is pure rendering — skip everything else in this workflow: no environment gate, no config questions, no requests, no seeding, and no packet reads or writes. The renderer only reads JSON already on disk, so nothing here needs the user's approval.
+
+- Resolve the operation from the packet path or slug, then run `python3 <skill-directory>/scripts/render_report.py <run-dir>` for each run directory under `<artifacts-dir>/<operation>/test-runs/` — or only the one named, when a specific run id follows `--report`.
+- With no packet or slug at all, sweep every operation under the artifacts dir and render all of their runs.
+- Report the generated `report.html` paths and the refreshed indexes (`test-runs/index.html` per operation, `index.html` at the artifacts root), then stop. No runs found is an answer, not a reason to execute tests.
+- Never create, edit, or delete any artifact in this mode; the HTML is regenerated from whatever the JSON currently says, divergences and all.
+
 ## 1. Resolve the environment — script-gated
 
 Environment values are not your call. [testing_env.py](scripts/testing_env.py) owns `.external-api-testing.toml` (created gitignored on first run):
@@ -27,7 +36,12 @@ Environment values are not your call. [testing_env.py](scripts/testing_env.py) o
 python3 <skill-directory>/scripts/testing_env.py check --repo <target-repo-root>
 ```
 
-- `ENVIRONMENT NOT READY` — the output lists each missing value with the exact question to ask the user. When the `AskUserQuestion` tool is available, use it (batches of up to 4): one question per missing value with the script's question text verbatim. For host questions you may offer discovered candidates as options — e.g. `http://localhost:<port>` from the repo's serve targets, each labeled with where it was found — because an option the user *selects* is a user answer; the free-text "Other" field covers everything else. Never pre-select or default. Without the tool, relay the questions as plain text. Record each answer with `testing_env.py set <section.key> "<answer>" --repo <root>` (it validates URLs, rejects garbage, and redacts the key), then re-run `check`.
+- `ENVIRONMENT NOT READY` — the output lists each missing value with the exact question to ask the user. When the `AskUserQuestion` tool is available, **every** question goes through it (batches of up to 4), each with the script's question text verbatim — never fall back to prose for a question just because options are scarce. An option the user *selects* is a user answer, so candidate options may come from live environment data, never from memory:
+  - server URLs → `http://localhost:<port>` candidates from the repo's serve targets, each labeled with where it was found;
+  - custom host → candidate hosts read live from the *testing* database via the read-only Mongo MCP connection, labeled as such;
+  - API key → no candidates exist; offer "Pause — I need to issue/copy the key first" as an option and receive the key itself through the free-text "Other" field.
+
+  Never pre-select or default. Without the tool, relay the questions as plain text. Record each answer with `testing_env.py set <section.key> "<answer>" --repo <root>` (it validates URLs, rejects garbage, and masks the key), then re-run `check`.
 - `ENVIRONMENT READY` — show the user the complete READY table verbatim and get their explicit go-ahead before doing anything else (via `AskUserQuestion` when available: "Run against this environment?" with the table in view — confirm / fix-a-value). This review is the gate the script cannot enforce: the provenance stamp proves `set` was called, not that the user was asked first. A value the user does not recognize in that table means the environment is compromised — a remembered or invented value passed to `set` is laundering, the run is invalid, and every stamped value must be re-asked.
 
 Until `check` prints READY you may not send a request, build a URL, or name a tenant. `set` receives only values the user gave *in this session*: a port from serve targets, a server you noticed running, or a host/tenant remembered from another conversation is not an answer. If the user says "it's running locally," ask for the port. The custom host *is* the tenant — all scenarios and seeded data live under it; there is no separate tenant value. Timeouts, delays, artifact locations, and the oracle token env-var names (`TM_TEST_LEGACY_TOKEN`, `TM_TEST_CORE_TOKEN`) are fixed policy in the script, never asked.
@@ -81,6 +95,14 @@ Both paths of a differential case must run against equivalent state: seed throug
 
 Follow [runtime-judgment.md](references/runtime-judgment.md): translate public fields through the `X-###` mapping before diffing, compare absent/null/false/zero/empty exactly, and issue one of `PASS`, `DIVERGENCE`, `UNEXPECTED`, or `BLOCKED` per case with the comparison cited. Triage every divergence into one bucket — implementation bug (route to `port-external-api`), ledger error (update the packet row with the run as runtime evidence), or approved-change-missing-record (a `D-###` is owed) — with the artifact folder as proof.
 
+Once every verdict is written, render the human view:
+
+```sh
+python3 <skill-directory>/scripts/render_report.py <run-dir>
+```
+
+It generates `report.html` inside the run directory and refreshes the run indexes (per-operation and across operations) — a self-contained page built entirely from the JSON artifacts, never a place to write anything new. Re-run it after any artifact change; never edit the HTML by hand. The JSON files remain the evidence; the report is only the reading layer over them.
+
 ## 7. Gate and verdict
 
 Append a `## Test Traceability` section to the packet: the `T-###` table (case, ledger refs, verdict) covering every `B/V/E/S-###` row, and a `Test run:` line pinning the run directory. Only when every case is `PASS` or justified `EXCLUDED` and no divergence is unresolved, set the packet Status and `Testing status:` to `VERIFIED`, then validate:
@@ -93,4 +115,4 @@ Anything unresolved: the packet stays `IMPLEMENTED`, and the run report carries 
 
 ## Handoff
 
-Report: the run directory path; coverage (cases run / excluded / blocked per ledger prefix); the verdict table; every divergence with its triage bucket and artifact folder; ledger corrections made; residual risks (unobservable side effects, blocked cases, environment drift from pinned commits); and the resulting packet status. Point the user at `summary.md` for their own audit pass — the artifacts, not this report, are the evidence.
+Report: the run directory path; coverage (cases run / excluded / blocked per ledger prefix); the verdict table; every divergence with its triage bucket and artifact folder; ledger corrections made; residual risks (unobservable side effects, blocked cases, environment drift from pinned commits); and the resulting packet status. Point the user at `report.html` in the run directory for their audit pass (open it in a browser; the per-operation `test-runs/index.html` lists every run), with `summary.md` as the plain-text fallback — the artifacts, not this report, are the evidence.
