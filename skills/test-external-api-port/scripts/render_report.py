@@ -1,12 +1,20 @@
 #!/usr/bin/env python3
 """Render a static HTML view over a test run's JSON artifacts.
 
-The JSON artifacts are the evidence and stay exactly as written by the run.
-This script is a derived, regenerable view: it reads a run directory
-(<artifacts-dir>/<operation>/test-runs/<run-id>/), embeds the artifact data
-into a self-contained report.html next to manifest.json, and refreshes two
-static indexes (one per operation, one across operations). It never writes
-into any artifact file and never reads the environment config.
+The JSON artifacts are the evidence and stay exactly as written by the run —
+that tree is the durable, trackable record. This script writes only derived,
+regenerable views, and it keeps them out of the evidence tree entirely: all
+HTML goes to a mirrored <artifacts-dir>/.reports/ tree that ignores itself
+(a .gitignore containing "*" is written inside it), so the evidence and the
+views never share git tracking. It never writes into any artifact file and
+never reads the environment config.
+
+Layout:
+    <artifacts-dir>/<op>/test-runs/<run-id>/   JSON evidence (commit-worthy)
+    <artifacts-dir>/.reports/<op>/<run-id>/report.html
+    <artifacts-dir>/.reports/<op>/index.html   runs of one operation
+    <artifacts-dir>/.reports/index.html        all operations
+    <artifacts-dir>/.reports/.gitignore        "*" — the tree ignores itself
 
 Usage:
     python3 render_report.py <run-dir>
@@ -110,14 +118,38 @@ def collect_run(run_dir: Path):
     }
 
 
-def render_report(run_dir: Path) -> Path:
+def render_report(run_dir: Path, out_dir: Path) -> Path:
     data = collect_run(run_dir)
     payload = json.dumps(data, indent=None, ensure_ascii=False).replace("</", "<\\/")
     html = TEMPLATE.replace("__TITLE__", escape(f"{data['operation']} · {data['run_id']}"))
     html = html.replace("__DATA__", payload)
-    out = run_dir / "report.html"
+    out_dir.mkdir(parents=True, exist_ok=True)
+    out = out_dir / "report.html"
     out.write_text(html, encoding="utf-8")
     return out
+
+
+def ensure_self_ignored(reports_root: Path) -> None:
+    """The whole .reports tree stays out of git, no repo .gitignore edits needed."""
+    reports_root.mkdir(parents=True, exist_ok=True)
+    marker = reports_root / ".gitignore"
+    if not marker.is_file() or marker.read_text(encoding="utf-8").strip() != "*":
+        marker.write_text("*\n", encoding="utf-8")
+
+
+def remove_stale_views(run_dir: Path, artifacts_root: Path) -> None:
+    """Earlier versions wrote HTML into the evidence tree; sweep those out so
+    only JSON evidence remains trackable. Deletes nothing but this script's
+    own known outputs."""
+    stale = [
+        run_dir / "report.html",
+        run_dir.parent / "index.html",
+        artifacts_root / "index.html",
+    ]
+    for path in stale:
+        if path.is_file():
+            path.unlink()
+            print(f"removed stale view from evidence tree: {path}")
 
 
 # ---------------------------------------------------------------- indexes
@@ -132,7 +164,7 @@ def manifest_coverage(manifest):
     return {}
 
 
-def run_row(run_dir: Path) -> dict:
+def run_row(run_dir: Path, report_dir: Path) -> dict:
     manifest, _ = load_json(run_dir / "manifest.json")
     cov = manifest_coverage(manifest)
     counts = {v: 0 for v in VERDICTS}
@@ -153,7 +185,7 @@ def run_row(run_dir: Path) -> dict:
         "excluded": cov.get("excluded", ""),
         "executed": executed,
         "counts": counts,
-        "has_report": (run_dir / "report.html").is_file(),
+        "has_report": (report_dir / run_dir.name / "report.html").is_file(),
     }
 
 
@@ -174,7 +206,7 @@ VERDICT_CLASS = {
 }
 
 
-def render_operation_index(test_runs_dir: Path) -> Path:
+def render_operation_index(test_runs_dir: Path, out_dir: Path) -> Path:
     operation = test_runs_dir.parent.name
     runs = sorted(
         (p for p in test_runs_dir.iterdir() if p.is_dir()),
@@ -183,7 +215,7 @@ def render_operation_index(test_runs_dir: Path) -> Path:
     )
     rows = []
     for run in runs:
-        row = run_row(run)
+        row = run_row(run, out_dir)
         link = (
             f'<a href="{escape(run.name)}/report.html">{escape(row["run_id"])}</a>'
             if row["has_report"]
@@ -208,18 +240,19 @@ def render_operation_index(test_runs_dir: Path) -> Path:
         "<th>Pass</th><th>Divergence</th><th>Unexpected</th><th>Blocked</th><th>Excluded</th>",
     )
     body = body.replace("__ROWS__", "\n".join(rows) or '<tr><td colspan="9">No runs yet</td></tr>')
-    out = test_runs_dir / "index.html"
+    out_dir.mkdir(parents=True, exist_ok=True)
+    out = out_dir / "index.html"
     out.write_text(body, encoding="utf-8")
     return out
 
 
-def render_root_index(root: Path) -> Path:
+def render_root_index(root: Path, reports_root: Path) -> Path:
     rows = []
     for op_dir in sorted(p for p in root.iterdir() if (p / "test-runs").is_dir()):
         runs_dir = op_dir / "test-runs"
         runs = sorted((p for p in runs_dir.iterdir() if p.is_dir()), key=lambda p: p.name)
         latest = runs[-1] if runs else None
-        counts = run_row(latest)["counts"] if latest else {}
+        counts = run_row(latest, reports_root / op_dir.name)["counts"] if latest else {}
         latest_cell = escape(latest.name) if latest else "—"
         rows.append(
             "<tr>"
@@ -238,7 +271,7 @@ def render_root_index(root: Path) -> Path:
         "<th>Pass</th><th>Divergence</th><th>Unexpected</th><th>Blocked</th>",
     )
     body = body.replace("__ROWS__", "\n".join(rows) or '<tr><td colspan="7">No runs yet</td></tr>')
-    out = root / "index.html"
+    out = reports_root / "index.html"
     out.write_text(body, encoding="utf-8")
     return out
 
@@ -580,17 +613,27 @@ def main(argv=None) -> int:
         print(f"ERROR: not a directory: {run_dir}", file=sys.stderr)
         return 2
 
-    report = render_report(run_dir)
-    print(f"report: {report}")
+    if run_dir.parent.name != "test-runs":
+        print(
+            "ERROR: expected <artifacts-dir>/<operation>/test-runs/<run-id>/ — "
+            "refusing to write views next to unrecognized evidence",
+            file=sys.stderr,
+        )
+        return 2
 
-    if run_dir.parent.name == "test-runs":
-        op_index = render_operation_index(run_dir.parent)
-        print(f"operation index: {op_index}")
-        root = run_dir.parent.parent.parent
-        root_index = render_root_index(root)
-        print(f"root index: {root_index}")
-    else:
-        print("note: run dir is not under <operation>/test-runs/ — indexes skipped")
+    artifacts_root = run_dir.parent.parent.parent
+    operation = run_dir.parent.parent.name
+    reports_root = artifacts_root / ".reports"
+    ensure_self_ignored(reports_root)
+    remove_stale_views(run_dir, artifacts_root)
+
+    report = render_report(run_dir, reports_root / operation / run_dir.name)
+    print(f"report: {report}")
+    op_index = render_operation_index(run_dir.parent, reports_root / operation)
+    print(f"operation index: {op_index}")
+    root_index = render_root_index(artifacts_root, reports_root)
+    print(f"root index: {root_index}")
+    print("evidence tree untouched; all views live under .reports/ (self-gitignored)")
     return 0
 
 

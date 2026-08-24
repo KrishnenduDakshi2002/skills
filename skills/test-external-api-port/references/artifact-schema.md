@@ -16,11 +16,12 @@
 <artifacts-dir>/<operation-slug>/test-runs/<run-id>/
   manifest.json
   summary.md
-  report.html          # derived view — generated, never hand-written (§7)
   T-001-<case-slug>/
   T-002-<case-slug>/
   ...
 ```
+
+This tree is the durable record — JSON evidence plus `summary.md`, trackable and meant to be committed alongside the port. Nothing generated or regenerable ever lands here; all HTML views live in the separate, git-ignored `.reports/` tree (§7).
 
 `run-id` is `date -u +%Y%m%dT%H%M%SZ`. Never overwrite an existing run directory; a re-run is a new run. Case folders are named by `T-###` plus a lowercase kebab-case slug of the case name.
 
@@ -71,8 +72,8 @@ T-014-duplicate-slug-conflict/
 
 - API keys, bearer tokens, cookies, and signatures never appear anywhere in artifacts — header and config values become `<redacted>`; the only place the external API key lives is the gitignored config file.
 - Fields the `X-###` ledger marks `secret` are redacted in `db.json` while preserving presence/absence.
-- Raw PII may remain in local artifacts (they are uncommitted evidence) but never gets copied into the packet, `summary.md` findings, or the handoff report.
-- Artifacts stay in the scratch location and are never staged or committed.
+- The evidence tree is written to be commit-safe: it holds only testing-tenant data (the environment gate forbids production connections), and anything that would be sensitive in a repository — credentials, signatures, `secret`-marked fields — is redacted at capture time. PII never gets copied into the packet, `summary.md` findings, or the handoff report.
+- Two git postures, never mixed: the JSON evidence tree is the record to track and commit; the derived `.reports/` tree is never committed — it ignores itself (§7).
 
 ## 6. summary.md
 
@@ -84,12 +85,20 @@ Human-first, in this order:
 4. Residual risks: `NOT_OBSERVABLE` effects, blocked cases, environment drift.
 5. A short "what to eyeball" list for the human audit pass — typically the exposure-sensitive responses (confirm absent fields are absent) and the error-shape responses.
 
-## 7. Derived HTML views
+## 7. Derived HTML views — `.reports/`, never tracked
 
-`scripts/render_report.py <run-dir>` generates three files, all purely a reading layer over the JSON above — they contain nothing that isn't in the artifacts, and the artifacts are never changed to suit them:
+Everything HTML is derived from the evidence and regenerable at will, so it lives in a mirrored tree that keeps itself out of git — the renderer writes a `.gitignore` containing `*` inside it, so it stays ignored with no edit to the repository's own ignore rules:
 
-- `report.html` in the run directory — self-contained (no network, no external assets), openable straight from disk: stat tiles for coverage, the filterable verdict table, expandable per-case detail (request, response, legacy capture, db before/after, side effects, verdict with citations, a copyable `curl`), and computed residual risks. If the manifest's coverage totals disagree with the case folders on disk, the page flags it — the folders win.
-- `test-runs/index.html` per operation — every run with its verdict counts, newest first.
-- `index.html` at the artifacts root — latest-run verdicts across all operations.
+```text
+<artifacts-dir>/.reports/
+  .gitignore                     # "*" — the tree ignores itself
+  index.html                     # latest-run verdicts across all operations
+  <operation-slug>/
+    index.html                   # every run of the operation, newest first
+    <run-id>/
+      report.html                # the full run report
+```
 
-Rules: regenerate after any artifact change; never edit the HTML by hand; never treat the report as evidence (the JSON files are); the renderer applies its own redaction pass on top of §5, but that is a backstop — secrets still must never reach the artifacts in the first place. Like everything else here, the HTML stays in the scratch location, uncommitted.
+`scripts/render_report.py <run-dir>` writes all three levels. `report.html` is self-contained (no network, no external assets), openable straight from disk: stat tiles for coverage, the filterable verdict table, expandable per-case detail (request, response, legacy capture, db before/after, side effects, verdict with citations, a copyable `curl`), and computed residual risks. If the manifest's coverage totals disagree with the case folders on disk, the page flags it — the folders win.
+
+Rules: regenerate after any artifact change; never edit the HTML by hand; never treat the report as evidence (the JSON files are); never write HTML into the evidence tree (the renderer also sweeps out views older versions left there). The renderer applies its own redaction pass on top of §5, but that is a backstop — secrets still must never reach the artifacts in the first place.

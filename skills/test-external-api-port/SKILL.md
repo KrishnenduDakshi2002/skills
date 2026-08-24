@@ -25,7 +25,7 @@ When the arguments include `--report`, this invocation is pure rendering — ski
 
 - Resolve the operation from the packet path or slug, then run `python3 <skill-directory>/scripts/render_report.py <run-dir>` for each run directory under `<artifacts-dir>/<operation>/test-runs/` — or only the one named, when a specific run id follows `--report`.
 - With no packet or slug at all, sweep every operation under the artifacts dir and render all of their runs.
-- Report the generated `report.html` paths and the refreshed indexes (`test-runs/index.html` per operation, `index.html` at the artifacts root), then stop. No runs found is an answer, not a reason to execute tests.
+- Report the generated paths under `<artifacts-dir>/.reports/` (per-run `report.html`, per-operation `index.html`, root `index.html`), then stop. No runs found is an answer, not a reason to execute tests.
 - Never create, edit, or delete any artifact in this mode; the HTML is regenerated from whatever the JSON currently says, divergences and all.
 
 ## 1. Resolve the environment — script-gated
@@ -101,7 +101,7 @@ Once every verdict is written, render the human view:
 python3 <skill-directory>/scripts/render_report.py <run-dir>
 ```
 
-It generates `report.html` inside the run directory and refreshes the run indexes (per-operation and across operations) — a self-contained page built entirely from the JSON artifacts, never a place to write anything new. Re-run it after any artifact change; never edit the HTML by hand. The JSON files remain the evidence; the report is only the reading layer over them.
+It writes `report.html` and the run indexes under `<artifacts-dir>/.reports/` — a separate, self-gitignored tree, mirrored per operation and run — built entirely from the JSON artifacts, never a place to write anything new. The two trees have opposite git postures and never mix: the JSON evidence is the durable record, trackable and committed with the port; everything under `.reports/` is regenerable and never committed. Re-run the renderer after any artifact change; never edit the HTML by hand and never write HTML into the evidence tree.
 
 ## 7. Gate and verdict
 
@@ -115,4 +115,4 @@ Anything unresolved: the packet stays `IMPLEMENTED`, and the run report carries 
 
 ## Handoff
 
-Report: the run directory path; coverage (cases run / excluded / blocked per ledger prefix); the verdict table; every divergence with its triage bucket and artifact folder; ledger corrections made; residual risks (unobservable side effects, blocked cases, environment drift from pinned commits); and the resulting packet status. Point the user at `report.html` in the run directory for their audit pass (open it in a browser; the per-operation `test-runs/index.html` lists every run), with `summary.md` as the plain-text fallback — the artifacts, not this report, are the evidence.
+Report: the run directory path; coverage (cases run / excluded / blocked per ledger prefix); the verdict table; every divergence with its triage bucket and artifact folder; ledger corrections made; residual risks (unobservable side effects, blocked cases, environment drift from pinned commits); and the resulting packet status. Point the user at `.reports/<operation>/<run-id>/report.html` for their audit pass (open it in a browser; `.reports/<operation>/index.html` lists every run), with `summary.md` as the plain-text fallback — the artifacts, not this report, are the evidence. Note the split when handing off: the run's evidence directory is what gets committed with the port; `.reports/` never is.
