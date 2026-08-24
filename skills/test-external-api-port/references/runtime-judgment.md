@@ -45,7 +45,7 @@ A differential write case is meaningful only when both paths start from equivale
 
 - seed exclusively through existing APIs (legacy, core, or external routes — they produce authentic documents); when no route can create the needed state, the case is `BLOCKED` with the missing seed named — never insert documents directly;
 - run legacy and new each from its own freshly twin-seeded state — never run the new path against state the legacy call just mutated;
-- record the seed in `case.json` precisely enough to reproduce it;
+- record the seed in the `case` block precisely enough to reproduce it;
 - created data must be plain, realistic platform data — sensible course titles, names, descriptions, and amounts, never random strings or "test123" filler; the test tenant should read like a real creator's account;
 - no cleanup is required or expected: data the run creates simply stays in the test tenant. List what was created (collections and ids) in the run artifacts so a human can prune later if they ever care — but never delete anything yourself.
 
@@ -82,7 +82,7 @@ Never fix product code in this workflow, and never edit a packet row to match th
 
 ## 9. Flakes and environment noise
 
-On a timeout or transport error, retry once after a delay and keep both attempts in the artifacts. Normalize only inherently unstable fields — server timestamps, generated ids, request ids — and list each normalized field with a reason in `verdict.json`; an undeclared normalization is a falsified comparison. If the two paths hit differently-versioned deployments of the same behavior, record the drift in the manifest and treat affected comparisons as reduced-confidence, not as failures.
+On a timeout or transport error, retry once after a delay and keep both attempts in the artifacts. Normalize only inherently unstable fields — server timestamps, generated ids, request ids — and list each normalized field with a reason in the `verdict` block; an undeclared normalization is a falsified comparison. If the two paths hit differently-versioned deployments of the same behavior, record the drift in the manifest and treat affected comparisons as reduced-confidence, not as failures.
 
 ## 10. Exploratory findings
 

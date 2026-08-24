@@ -77,6 +77,7 @@ def scrub(value):
 
 
 def collect_case(folder: Path):
+    """Old layout: one folder per case with fixed file names."""
     files, errors = {}, {}
     for key, rel in CASE_FILES.items():
         data, err = load_json(folder / rel)
@@ -86,15 +87,44 @@ def collect_case(folder: Path):
     return {"folder": folder.name, "files": files, "errors": errors}
 
 
+def collect_case_file(path: Path):
+    """New layout: one JSON file per case with top-level blocks."""
+    data, err = load_json(path)
+    files = {key: None for key in CASE_FILES}
+    errors = {}
+    if err:
+        errors["case-file"] = err
+    elif isinstance(data, dict):
+        legacy = data.get("legacy") or {}
+        mapping = {
+            "case": data.get("case"),
+            "request": data.get("request"),
+            "response": data.get("response"),
+            "legacy_request": legacy.get("request") if isinstance(legacy, dict) else None,
+            "legacy_response": legacy.get("response") if isinstance(legacy, dict) else None,
+            "db": data.get("db"),
+            "side_effects": data.get("side_effects"),
+            "verdict": data.get("verdict"),
+        }
+        files = {key: scrub(val) if val is not None else None for key, val in mapping.items()}
+    return {"folder": path.stem, "files": files, "errors": errors}
+
+
 def collect_run(run_dir: Path):
     manifest, manifest_error = load_json(run_dir / "manifest.json")
     summary_path = run_dir / "summary.md"
     summary_md = summary_path.read_text(encoding="utf-8") if summary_path.is_file() else None
 
-    case_dirs = sorted(
-        p for p in run_dir.iterdir() if p.is_dir() and re.match(r"^T-\d{3}", p.name)
+    entries = sorted(
+        (
+            p
+            for p in run_dir.iterdir()
+            if re.match(r"^T-\d{3}", p.name)
+            and (p.is_dir() or (p.is_file() and p.suffix == ".json"))
+        ),
+        key=lambda p: p.stem,
     )
-    cases = [collect_case(p) for p in case_dirs]
+    cases = [collect_case(p) if p.is_dir() else collect_case_file(p) for p in entries]
 
     counts = {v: 0 for v in VERDICTS}
     counts["UNKNOWN"] = 0
@@ -169,12 +199,18 @@ def run_row(run_dir: Path, report_dir: Path) -> dict:
     cov = manifest_coverage(manifest)
     counts = {v: 0 for v in VERDICTS}
     executed = 0
-    for folder in run_dir.iterdir():
-        if folder.is_dir() and re.match(r"^T-\d{3}", folder.name):
-            executed += 1
-            verdict = (load_json(folder / "verdict.json")[0] or {}).get("verdict")
-            if verdict in counts:
-                counts[verdict] += 1
+    for entry in run_dir.iterdir():
+        if not re.match(r"^T-\d{3}", entry.name):
+            continue
+        if entry.is_dir():
+            verdict = (load_json(entry / "verdict.json")[0] or {}).get("verdict")
+        elif entry.is_file() and entry.suffix == ".json":
+            verdict = ((load_json(entry)[0] or {}).get("verdict") or {}).get("verdict")
+        else:
+            continue
+        executed += 1
+        if verdict in counts:
+            counts[verdict] += 1
     started = ""
     if isinstance(manifest, dict):
         started = str(manifest.get("started_at") or manifest.get("start") or "")

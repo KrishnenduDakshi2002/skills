@@ -7,7 +7,7 @@ disable-model-invocation: true
 
 # Test External API Port
 
-Certify at runtime what `port-external-api` implemented and `audit-external-api-port` reviewed. The oracle is not your judgment — it is the live legacy route, the persisted documents, and the packet's pinned rules. Every case leaves a folder of raw wire evidence a human can audit without trusting you.
+Certify at runtime what `port-external-api` implemented and `audit-external-api-port` reviewed. The oracle is not your judgment — it is the live legacy route, the persisted documents, and the packet's pinned rules. Every case leaves a file of raw wire evidence a human can audit without trusting you.
 
 **A verdict is a comparison against captured evidence — never an opinion that a response "looks correct."** Every verdict cites what it compared: the legacy capture, the persisted documents, or the packet row.
 
@@ -87,7 +87,7 @@ Then verify yourself and add to the manifest:
 
 ## 5. Execute and capture
 
-Follow [artifact-schema.md](references/artifact-schema.md) exactly: one run directory, one folder per case, fixed file names — `case.json`, `request.json`, `response.json`, `legacy/`, `db.json`, `side-effects.json`, `verdict.json` — plus `manifest.json` and a human-first `summary.md`.
+Follow [artifact-schema.md](references/artifact-schema.md) exactly: one run directory, one JSON file per case with fixed top-level blocks — `case`, `request`, `response`, `legacy`, `db`, `side_effects`, `verdict` — plus `manifest.json` and a human-first `summary.md`.
 
 Both paths of a differential case must run against equivalent state: seed through the APIs themselves (authentic documents), giving each path its own freshly twin-seeded state, and never run the new path against state the legacy call just mutated. The Mongo MCP connection is read-only verification: capture targeted before/after documents with it whenever a rule's expected outcome is persisted state, but every write — seed and scenario — goes through the APIs only, never through Mongo. No cleanup: run-created data stays in the test tenant, listed in the artifacts — which is why it must look like real platform data, not junk. Apply the fixed inter-request delay; deployed environments are shared.
 
