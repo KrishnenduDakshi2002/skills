@@ -163,7 +163,7 @@ For each endpoint:
 - apply external auth middleware/guards consistently;
 - use the central operation ID registry;
 - when the port introduces a new external module or tag, register the tag with a consumer-facing description in `buildExternalApiDocumentOptions` (`apps/core-api/src/swagger/external-api-document.ts`) — a controller tag missing from this registry breaks documentation construction;
-- document summaries, detailed semantics, defaults, restrictions, errors, and realistic examples;
+- document summaries, detailed semantics, defaults, restrictions, errors, and realistic examples — to the bar in the `document-external-api` skill's documentation rubric when that skill is installed, so a ported endpoint never needs a backfill pass;
 - annotate every request/response property with correct types and formats;
 - ensure static routes cannot be shadowed by dynamic parameters;
 - verify response status and no-content/file-stream behavior through the runtime response interceptor;
