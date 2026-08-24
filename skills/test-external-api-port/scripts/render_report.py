@@ -386,8 +386,10 @@ details > summary::before { content: "▸"; color: var(--muted); font-size: 11px
 details[open] > summary::before { content: "▾"; }
 details .body { padding: 0 12px 10px; }
 pre { background: var(--page); border: 1px solid var(--hairline); border-radius: 6px;
-      padding: 10px 12px; overflow: auto; max-height: 420px; margin: 0;
-      font: 12px/1.5 ui-monospace, SFMono-Regular, Menlo, monospace; }
+      padding: 10px 12px; overflow-y: auto; max-height: 420px; margin: 0;
+      font: 12px/1.5 ui-monospace, SFMono-Regular, Menlo, monospace;
+      white-space: pre-wrap; overflow-wrap: anywhere; }
+tr.detail-row > td { max-width: 0; }
 .copy { float: right; font-size: 12px; border: 1px solid var(--hairline);
         border-radius: 6px; background: var(--surface); color: var(--ink);
         padding: 2px 10px; cursor: pointer; }
