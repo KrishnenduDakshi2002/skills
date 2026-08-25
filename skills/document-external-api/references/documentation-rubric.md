@@ -29,7 +29,7 @@ Each numbered section below is a checklist item in the endpoint's gap table: met
 
 **Description** — the paragraph(s) a consumer reads before committing to the endpoint. Required content, when applicable (the *nuance hunt* — each answered from code, packet, or captured runtime, never assumed):
 
-- **Purpose and when to use it** — the consumer scenario, plus when to use a sibling endpoint instead.
+- **Purpose and when to use it** — the consumer scenario, plus when to use a sibling endpoint instead; a named sibling is a markdown link built with the documentation-URL helper, not just a name the consumer has to hunt for.
 - **Defaults** — the actual coded default of every optional behavior the endpoint has (period selected, sort applied, scope assumed).
 - **Ordering** — the guarantee including tie-breakers, or an explicit "no order is guaranteed". Silence reads as a promise of stability.
 - **Pagination semantics** — how page/limit interact, bounds, and what an out-of-range page returns.
@@ -48,7 +48,7 @@ Every parameter and body property carries a description that **adds information 
 
 - **meaning** — which user, which resource, in consumer terms;
 - **format** — ObjectId hex string, ISO 8601 timestamp, timezone assumptions, units (or put the unit in the name: `durationSeconds`, `amountMinorUnits`);
-- **obtainment** — which endpoint or flow produces this value; an input the consumer cannot source is undocumented no matter how well described;
+- **obtainment** — which endpoint or flow produces this value, linked to that endpoint's reference page via the documentation-URL helper (`getExternalApiDocumentationUrl`) so the consumer can jump straight to it; an input the consumer cannot source is undocumented no matter how well described;
 - **constraints** — min/max/enum/pattern mirroring the *actual validators*; prefer citing the same shared policy constants the validators use so docs cannot drift from enforcement; a documented constraint nothing enforces is a finding, not a doc;
 - **requiredness truth** — required/optional as validated, defaults stated on the property, conditional and mutually-exclusive relationships cross-referenced *on both fields involved*;
 - **enums** — each value's meaning when not self-evident, not just the value list.

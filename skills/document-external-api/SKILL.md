@@ -20,6 +20,7 @@ Decorators are the source: `@ExternalApi({ doc, response, errors })` on each han
 - Judge everything in the **generated document**, not in the TypeScript — that is what the consumer sees. Descriptions are markdown.
 - `errors: [...]` scenarios render as named examples per status code — one entry per reachable `errorCode`, via the central `getErrDefinition` registry.
 - Operation IDs come from the central registry and become page slugs and client method names; never inline a string.
+- When naming another endpoint would make a description correct and complete — where an input value comes from, which sibling to use instead — link it: a markdown link whose URL is built with `getExternalApiDocumentationUrl(tagSlug, operationId)` from `apps/core-api/src/api-modules/external/external-api-documentation-url.ts`, never a hardcoded docs URL. The helper keeps links valid across environments and origin changes.
 - Convention-level facts (auth headers, response envelope, global rate limit) live once in the overview description in `external-api-document.ts`. Per-endpoint docs state only what is endpoint-specific and must never contradict the overview.
 - The preview script's default output path targets a sibling `tagmango-documentation` checkout. **Always pass an explicit temporary output path**; publishing a spec to the documentation repo is the user's call, never a side effect.
 
