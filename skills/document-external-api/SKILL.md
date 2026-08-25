@@ -15,11 +15,10 @@ The reader is an integrator — increasingly an AI agent — with no dashboard a
 
 ## The pipeline you are editing
 
-Decorators are the source: `@ExternalApi({ doc, response, errors })` on each handler plus `@ApiProperty` metadata on DTOs. The repository's preview script (`apps/core-api/src/scripts/preview-external-swagger.ts`) generates the external OpenAPI document; the `tagmango-documentation` Docusaurus site renders it via `docusaurus-plugin-openapi-docs`. Consequences:
+Decorators are the source: `@ExternalApi({ doc, response, errors })` on each handler plus `@ApiProperty` metadata on DTOs. The repository's preview script (`apps/core-api/src/scripts/preview-external-swagger.ts`) generates the external OpenAPI document, which downstream documentation tooling renders. Consequences:
 
-- Judge everything in the **generated document**, not in the TypeScript — that is what the consumer sees.
-- Descriptions are markdown; `:::info` / `:::warning` admonitions render on the docs site.
-- `errors: [...]` scenarios render as named, tabbed examples per status code — one entry per reachable `errorCode`, via the central `getErrDefinition` registry.
+- Judge everything in the **generated document**, not in the TypeScript — that is what the consumer sees. Descriptions are markdown.
+- `errors: [...]` scenarios render as named examples per status code — one entry per reachable `errorCode`, via the central `getErrDefinition` registry.
 - Operation IDs come from the central registry and become page slugs and client method names; never inline a string.
 - Convention-level facts (auth headers, response envelope, global rate limit) live once in the overview description in `external-api-document.ts`. Per-endpoint docs state only what is endpoint-specific and must never contradict the overview.
 - The preview script's default output path targets a sibling `tagmango-documentation` checkout. **Always pass an explicit temporary output path**; publishing a spec to the documentation repo is the user's call, never a side effect.

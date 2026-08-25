@@ -79,7 +79,7 @@ Every parameter and body property carries a description that **adds information 
 
 - Consumer language throughout. Platform terms a consumer meets in the product (mango, creator, custom host) are fine; internal vocabulary is not — no Mongo/Mongoose/schema field names, module or function names, frontend labels, or "same as the old API" references. Legacy provenance is packet material, never contract material.
 - Active voice, present tense, sentences over fragments. Short paragraphs and bullet lists in long descriptions; no deep heading structures inside a description — it renders inside an operation page.
-- Admonitions sparingly and by meaning: `:::warning` for destructive, irreversible, or security-relevant behavior; `:::info` for a non-obvious but safe nuance. An admonition on every endpoint means none of them read as important.
+- Emphasis sparingly and by meaning: call out destructive, irreversible, or security-relevant behavior prominently; a non-obvious but safe nuance is a plain sentence. A warning on every endpoint means none of them read as important.
 - The description never restates what the spec already encodes (method, path, status codes) — it spends its words on what the schema cannot say.
 
 ## 8. Overview vs endpoint
