@@ -21,15 +21,22 @@ An endpoint is documented when a consumer who has only the generated OpenAPI doc
 - interpret **every** response field and predict pagination, ordering, and empty-state behavior;
 - anticipate every error they can trigger and know what to change when they hit one.
 
+The bar is completeness of **consumer-relevant claims, not completeness of detail**. The document describes observable behavior the consumer must plan around — never the implementation that produces it. Every sentence must change what a correct integration looks like; a sentence that doesn't (internal computation, code structure, field-by-field logic narration) is a gap in the other direction: over-documentation buries the claims that matter under noise.
+
 Each numbered section below is a checklist item in the endpoint's gap table: met, gap, or justified N/A.
 
 ## 2. Operation documentation
 
 **Summary** — a short verb phrase naming the action in consumer terms, matching the surface's existing casing convention. It is the link text in the sidebar; it must distinguish this endpoint from its siblings at a glance.
 
-**Description** — the paragraph(s) a consumer reads before committing to the endpoint. Required content, when applicable (the *nuance hunt* — each answered from code, packet, or captured runtime, never assumed):
+**Description** — what a consumer reads before committing to the endpoint. Descriptions are markdown documents: the renderer gives them headings, side navigation, and callouts, so structure a long description with subheadings, bullet lists, and notes instead of paragraph walls — and keep a short one to a paragraph or two; structure serves length, never decoration. Content, in this order:
 
-- **Purpose and when to use it** — the consumer scenario, plus when to use a sibling endpoint instead; a named sibling is a markdown link built with the documentation-URL helper, not just a name the consumer has to hunt for.
+1. **Purpose** — what the endpoint represents, the consumer scenario it serves, and when to use a sibling endpoint instead; a named sibling is a markdown link built with the documentation-URL helper, not just a name the consumer has to hunt for.
+2. **Nuances** — a bullet list, each item one sentence of observable behavior.
+3. **Related endpoints** — which endpoints produce this one's inputs or consume its outputs, linked, when not already covered by field-level obtainment links.
+
+The *nuance hunt* below is an investigation checklist, not a writing template: answer every item from code, packet, or captured runtime — never assumed — then write **only the answers that change what the consumer builds**. A nuance is stated as observable behavior ("results may lag writes by up to 10 minutes"), never as the code that produces it. Hunt, when applicable:
+
 - **Defaults** — the actual coded default of every optional behavior the endpoint has (period selected, sort applied, scope assumed).
 - **Ordering** — the guarantee including tie-breakers, or an explicit "no order is guaranteed". Silence reads as a promise of stability.
 - **Pagination semantics** — how page/limit interact, bounds, and what an out-of-range page returns.
@@ -78,7 +85,9 @@ Every parameter and body property carries a description that **adds information 
 ## 7. Style and voice
 
 - Consumer language throughout. Platform terms a consumer meets in the product (mango, creator, custom host) are fine; internal vocabulary is not — no Mongo/Mongoose/schema field names, module or function names, frontend labels, or "same as the old API" references. Legacy provenance is packet material, never contract material.
-- Active voice, present tense, sentences over fragments. Short paragraphs and bullet lists in long descriptions; no deep heading structures inside a description — it renders inside an operation page.
+- Active voice, present tense, sentences over fragments. Descriptions are markdown: structure a long one with subheadings, bullet lists, and note callouts — headings feed the reader's side navigation — but keep heading depth shallow (one level of subheadings) and give a short description no structure it doesn't need.
+- Concise by selection, not compression: cover purpose, nuances, and related endpoints in the fewest sentences that carry them, and cut the sentence that changes nothing for the consumer rather than shortening every sentence into fragments.
+- Observable behavior only. How a value is computed, which module produces it, what the code checks in what order — implementation is never contract material. A field's description says what the value means and how to use it, not how it is derived; derivation enters the docs only when it surfaces as behavior the consumer must plan around (staleness, ordering, side effects).
 - Emphasis sparingly and by meaning: call out destructive, irreversible, or security-relevant behavior prominently; a non-obvious but safe nuance is a plain sentence. A warning on every endpoint means none of them read as important.
 - The description never restates what the spec already encodes (method, path, status codes) — it spends its words on what the schema cannot say.
 
