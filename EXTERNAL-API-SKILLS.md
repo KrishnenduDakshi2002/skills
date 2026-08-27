@@ -71,6 +71,8 @@ Extras:
 
 Raises endpoint documentation to the bar where a consumer — increasingly an AI agent — can integrate from the generated document alone: purpose, nuances (defaults, ordering, filter interaction, limits, freshness, side effects), field semantics with **where each input value is obtained** (linked via `getExternalApiDocumentationUrl`), reachable errors with actionable descriptions, and realistic coherent examples.
 
+Descriptions are structured markdown — purpose and use case first, then nuances as a list, then related endpoints, with subheadings and callouts on long pages — and written at the contract level: observable behavior only, never the implementation that produces it. Concision is part of the bar; a sentence that doesn't change what the consumer builds is over-documentation, not thoroughness.
+
 Hard boundary: **docs-only diffs** — decorator metadata, DTO `@ApiProperty` options, error scenarios, registries, prose. Every claim traces to code, a packet ledger, or a captured test run; a claim that can't be traced becomes a finding (implementation bugs → `port-external-api`, contract/exposure questions → `audit-external-api-port`), never confident prose. `scripts/doc_coverage.py <spec> --repo <root>` gives the mechanical before/after gap report.
 
 Use it for: one operation after it's verified, a tag, or a full-surface backfill sweep (`--all`).

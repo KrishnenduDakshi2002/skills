@@ -7,7 +7,7 @@ disable-model-invocation: true
 
 # Document External API
 
-The reader is an integrator — increasingly an AI agent — with no dashboard access, no support channel, and no TagMango insider vocabulary. The generated OpenAPI document is everything they get. Every endpoint must let that reader build a correct request, interpret every response field, and predict every error from the document alone.
+The reader is an integrator — increasingly an AI agent — with no dashboard access, no support channel, and no TagMango insider vocabulary. The generated OpenAPI document is everything they get. Every endpoint must let that reader build a correct request, interpret every response field, and predict every error from the document alone — in the fewest words that do it. The document is a contract, not a code walkthrough: it carries observable behavior the consumer must plan around, never the implementation that produces it, and never a sentence that doesn't change what the consumer builds.
 
 **Documentation is a set of claims about runtime behavior, and every claim needs a source.** A claim traces to code (controller → DTO validators → shared use case → repository), to a port packet ledger row, or to a captured runtime response from a test run. Existing prose is a claim to verify, never authority to carry forward. A claim you cannot trace is a doubt, and a doubt becomes a finding — never confident prose.
 
@@ -17,7 +17,7 @@ The reader is an integrator — increasingly an AI agent — with no dashboard a
 
 Decorators are the source: `@ExternalApi({ doc, response, errors })` on each handler plus `@ApiProperty` metadata on DTOs. The repository's preview script (`apps/core-api/src/scripts/preview-external-swagger.ts`) generates the external OpenAPI document, which downstream documentation tooling renders. Consequences:
 
-- Judge everything in the **generated document**, not in the TypeScript — that is what the consumer sees. Descriptions are markdown.
+- Judge everything in the **generated document**, not in the TypeScript — that is what the consumer sees. Descriptions are markdown and render as doc pages with headings, side navigation, and callouts — structure them accordingly.
 - `errors: [...]` scenarios render as named examples per status code — one entry per reachable `errorCode`, via the central `getErrDefinition` registry.
 - Operation IDs come from the central registry and become page slugs and client method names; never inline a string.
 - When naming another endpoint would make a description correct and complete — where an input value comes from, which sibling to use instead — link it: a markdown link whose URL is built with `getExternalApiDocumentationUrl(tagSlug, operationId)` from `apps/core-api/src/api-modules/external/external-api-documentation-url.ts`, never a hardcoded docs URL. The helper keeps links valid across environments and origin changes.
@@ -50,7 +50,7 @@ Read [documentation-rubric.md](references/documentation-rubric.md) and walk ever
 
 ### 4. Write the documentation
 
-Work endpoint by endpoint, rubric in hand. Every optional field states its coded default; every collection states its ordering or explicitly disclaims one; every input identifier names the endpoint that produces it; every reachable error code appears with a consumer-actionable description; examples are realistic platform data telling one coherent story. Register new tags and operation IDs centrally. Prefer constants already shared with validators (policy objects, enums) over retyped literals so docs cannot drift from enforcement.
+Work endpoint by endpoint, rubric in hand. A description is a structured markdown document — purpose and use case first, then nuances as a bullet list, then related endpoints, with subheadings and note callouts on long descriptions rather than paragraph walls. Write at the contract level: each nuance is one sentence of observable behavior, never the code logic behind it, and a hunted nuance that changes nothing for the consumer stays in the working notes, not the docs. Every optional field states its coded default; every collection states its ordering or explicitly disclaims one; every input identifier names the endpoint that produces it; every reachable error code appears with a consumer-actionable description; examples are realistic platform data telling one coherent story. Register new tags and operation IDs centrally. Prefer constants already shared with validators (policy objects, enums) over retyped literals so docs cannot drift from enforcement.
 
 ### 5. Regenerate and verify
 
