@@ -1,6 +1,6 @@
 # External API Skills — Usage Guide
 
-Four skills cover the lifecycle of moving a TagMango backend endpoint (`apps/api` / `apps/core-api`) onto the external API surface. Each is independently invocable, but they are designed as a pipeline with hard handoff gates:
+Five skills cover the lifecycle of moving a TagMango backend endpoint (`apps/api` / `apps/core-api`) onto the external API surface. Four form a pipeline with hard handoff gates; the fifth is the code owner's conformance review for changes that arrive outside the pipeline:
 
 | Stage | Skill | Invoke with | Writes | Ends at |
 |---|---|---|---|---|
@@ -8,6 +8,7 @@ Four skills cover the lifecycle of moving a TagMango backend endpoint (`apps/api
 | 2. Review | `audit-external-api-port` | `[pr-number \| branch \| packet-path]` | nothing (read-only) | P0–P3 findings + one verdict |
 | 3. Verify | `test-external-api-port` | `<packet-path \| operation-slug> [--report [run-id]]` | test-run artifacts + HTML reports | packet `VERIFIED` (or findings) |
 | 4. Document | `document-external-api` | `<operation-id \| tag \| controller-path \| --all>` | docs-only code changes | consumer-ready OpenAPI docs |
+| Owner review | `review-external-api` | `[pr-number \| branch \| path] [--comment]` | nothing (optional PR comments on confirm) | P0–P3 findings + one recommendation |
 
 ## Install
 
@@ -78,10 +79,22 @@ Hard boundary: **docs-only diffs** — decorator metadata, DTO `@ApiProperty` op
 
 Use it for: one operation after it's verified, a tag, or a full-surface backfill sweep (`--all`).
 
+## 5. `review-external-api` — code-owner conformance review
+
+For external-API changes that **didn't go through the pipeline** — a teammate's PR with no issue grill, no packet, no ledgers. The rules still bind the code; this skill reviews any PR, branch, or working tree against the established rulebook: contract design, request↔response vocabulary symmetry, canonical `Ext*Dto`/`Ext*SummaryDto` representation tiers, exposure and mapper enforcement (external routes have no runtime `plainToInstance` allowlisting — the mapper is the enforcement), shared `libs/services`/`libs/repository` architecture, validation layering, error registry use, naming, and the documentation bar.
+
+- Pipeline artifacts are evidence when present, never a precondition — a missing packet is itself a `P2` finding, not a blocker.
+- Every finding cites the rule it violates and `file:line` evidence; verified against the code before it's reported.
+- Ends with exactly one recommendation: `APPROVE`, `CHANGES REQUIRED`, or `ESCALATE TO FULL AUDIT` (the change ports legacy behavior whose parity only `audit-external-api-port` can certify).
+- Read-only. With `--comment` it posts findings as inline PR comments — only after you confirm them in-session, as a `COMMENT` review unless you say otherwise.
+
+Use it for: reviewing teammates' external-API PRs as the code owner, pre-merge conformance checks, and "does this follow our rules?" questions. It never certifies parity or runtime behavior — that stays with the audit and test skills.
+
 ## Common flows
 
 - **Full lifecycle**: `port-external-api <issue-url>` → fix findings from `audit-external-api-port` → `test-external-api-port <packet>` until `VERIFIED` → `document-external-api <operation-id>`.
-- **Review someone's PR**: `audit-external-api-port <pr-number>` — nothing else runs.
+- **Review someone's PR (pipeline port)**: `audit-external-api-port <pr-number>` — nothing else runs.
+- **Review a teammate's PR that skipped the pipeline**: `review-external-api <pr-number>` — owner's conformance review; add `--comment` to post inline findings after confirming them.
 - **Re-render test reports** (after pruning, on a new machine, after a renderer update): `test-external-api-port --report`.
 - **Docs backfill** on endpoints that predate the pipeline: `document-external-api <tag>` per domain, or `--all`.
 
