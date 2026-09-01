@@ -1,0 +1,7 @@
+interface:
+  display_name: "TagMango Frontend 2.0 UI Consistency Audit"
+  short_description: "Audit and fix UI/utils consistency in PR changes"
+  default_prompt: "Use $tm-fe-2-ui-consistency-audit to audit the current branch changes for UI and utils consistency issues and fix the PR-scoped findings."
+
+policy:
+  allow_implicit_invocation: false
