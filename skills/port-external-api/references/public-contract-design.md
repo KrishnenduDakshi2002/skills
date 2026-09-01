@@ -52,6 +52,8 @@ Use path parameters for the resource being addressed. Document identifier format
 
 Define pagination defaults and maximums, sort fields and tie-breakers, filter combination semantics, date inclusivity, timezone interpretation, empty-result behavior, and array encoding. Avoid an unbounded list endpoint.
 
+Name a filter or sort parameter after the response field it operates on, and state the linkage in its description (`signedUpAfter`/`signedUpBefore` filter the response's `signedUpAt`). A filter whose target field the consumer cannot find in the response is a naming defect.
+
 ### Request body
 
 Group related fields only when the group has a meaningful name and lifecycle. Do not reproduce frontend component nesting. Prefer a discriminated union when valid fields depend on a mode/type; it makes impossible combinations unrepresentable in generated clients.
@@ -119,6 +121,14 @@ A public resource concept has exactly one named representation per tier — typi
 When a response embeds another resource (badges inside a user, plans inside a subscription), compose the embedded resource's canonical summary representation through its mapper. Never hand-pick the embedded resource's fields inline: two endpoints shaping the same concept independently will drift in naming, grouping, and null semantics.
 
 Before designing a response, inventory the external surface for existing representations of every resource concept the response returns or embeds — including concepts that do not have their own endpoint yet. Reuse the tier that fits; if none fits, either evolve the canonical tier (the change appears everywhere it is used — check every consumer) or introduce a new named tier with a recorded decision. An endpoint that has no badges API yet still defines `BadgeSummary` as a canonical, reusable representation, so the future badges port composes it instead of inventing a second shape.
+
+Tiers relate by derivation, never restatement: the summary tier picks from the verbose/detail tier, and a specialized shape picks from or omits on a canonical tier, so a field's name, type, and null semantics cannot drift between shapes of the same concept. The two tiers are the consistency contract of the whole surface — the summary tier is *the* amount of the resource every embedding exposes, the verbose tier is *the* full publicly exposable field set — and a genuinely specialized need extends one of them rather than inventing a third vocabulary.
+
+### Keep the request and response in one vocabulary
+
+What a caller sends is what they get back. A write body's field names, grouping, and nesting mirror the representation the API returns for the same resource: the `settings` group accepted on create is the `settings` group every read returns, so a write-then-read round-trips on identical paths and a generated client reuses one shape in both directions. Derive write DTOs from the canonical representation — create body from the detail tier, update body as a partial of create — instead of designing input and output vocabularies independently.
+
+Rename an unexpressive internal field for the public surface exactly once, and apply the rename identically in both directions; a caller must never send a value under one name and read it back under another. When the server normalizes or defaults an input, echo the applied value back under the request field's name (a `reportingCurrency` request parameter returns as a top-level `reportingCurrency`). Any in-name that differs from its out-name, or in-grouping that differs from its out-grouping, is a contract defect unless a recorded decision says otherwise.
 
 Build the response through an explicit allowlisted DTO/mapper. Verify that the runtime serializer actually applies it. Swagger `type` metadata alone does not filter returned objects.
 

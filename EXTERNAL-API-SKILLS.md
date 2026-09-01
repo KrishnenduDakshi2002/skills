@@ -36,13 +36,14 @@ What it enforces:
 
 - **Same-outcome rule** — same request, actor, and state produce the same persisted state, responses, side effects (in order), and errors as the pinned legacy source. Suspected legacy bugs are preserved and escalated as a `D-###` decision, never silently fixed.
 - **Shared-capability rule** — one transport-neutral use case in `libs/services`, typed data access in `libs/repository`; external and core controllers are thin adapters. A future core route must need only auth, DTOs, mapping, and wiring.
+- **One public vocabulary** — request and response share names and grouping: write DTOs derive from the resource's canonical representation so a write-then-read round-trips, internal-field renames apply identically in both directions, and filters name the response field they operate on. Every resource concept has exactly two canonical tiers — a verbose `Ext<Resource>Dto` and an `Ext<Resource>SummaryDto` composed wherever the resource is embedded — with specialized shapes derived from them (`PickType`/`OmitType`), never restated.
 - **Never writes or runs tests.** It stops at `IMPLEMENTED` — traceability shows where behavior was placed, not that it executes correctly.
 
 Use it for: new ports, research/design-only requests (stops after the grill), and retrofitting packets for already-committed code. Not for reviews — that's the audit skill.
 
 ## 2. `audit-external-api-port` — independent review
 
-Read-only, findings-first. It reconstructs expected behavior and the contract **independently** — the packet, comments, docs, and tests are claims to verify, not authority. It audits behavioral parity, wire-contract quality (from the generated OpenAPI document, never inferred from controller fragments), validation enforcement by layer, exposure/security (allowlist tracing, tenant binding, key scope), shared-architecture and core-replacement readiness, and test honesty.
+Read-only, findings-first. It reconstructs expected behavior and the contract **independently** — the packet, comments, docs, and tests are claims to verify, not authority. It audits behavioral parity, wire-contract quality (from the generated OpenAPI document, never inferred from controller fragments), request↔response symmetry and canonical representation-tier reuse, validation enforcement by layer, exposure/security (allowlist tracing, tenant binding, key scope), shared-architecture and core-replacement readiness, and test honesty.
 
 Output: `P0`–`P3` findings (severity-ordered, each with scenario/expected/actual/impact/remediation/missing-test) and exactly one verdict: `APPROVED`, `CHANGES REQUIRED`, `BLOCKED BY DECISION`, or `NOT CERTIFIED`. It never edits code.
 

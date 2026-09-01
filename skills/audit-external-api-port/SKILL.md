@@ -29,7 +29,7 @@ Compare your ledger against the target and the packet; never downgrade a rule yo
 
 Judge from the generated OpenAPI document and, when a running server or captured integration response is available, real runtime responses. Never infer the public URL from a controller fragment or the response shape from Swagger DTO metadata. Walk rubric §3 and §5: complete versioned URL, honest method and resource boundaries, deliberate parameter placement, per-field semantics, allowlisted grouped responses, stable documented errors, and retry/idempotency/pagination/compatibility semantics where material.
 
-For every resource concept the response returns or embeds, locate its canonical representation elsewhere on the external surface and diff the shapes — an embedded resource whose fields, names, or null semantics differ from the standalone representation without a recorded tier decision is a contract finding.
+For every resource concept the response returns or embeds, locate its canonical representation elsewhere on the external surface and diff the shapes — an embedded resource whose fields, names, or null semantics differ from the standalone representation without a recorded tier decision is a contract finding. Diff the request contract against the response the same way: a caller-sent field that returns under a different name or grouping, or a filter parameter that names no response field, is a contract finding absent a recorded decision.
 
 Acid test: write the minimal valid request, an important optional combination, and an invalid combination from the docs alone. If that fails, record a contract finding.
 
