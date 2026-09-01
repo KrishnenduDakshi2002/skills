@@ -59,6 +59,7 @@ Every parameter and body property carries a description that **adds information 
 - **constraints** — min/max/enum/pattern mirroring the *actual validators*; prefer citing the same shared policy constants the validators use so docs cannot drift from enforcement; a documented constraint nothing enforces is a finding, not a doc;
 - **requiredness truth** — required/optional as validated, defaults stated on the property, conditional and mutually-exclusive relationships cross-referenced *on both fields involved*;
 - **enums** — each value's meaning when not self-evident, not just the value list.
+- **response linkage** — a filter or sort parameter states which response field it operates on ("the field `signedUpAfter` and `signedUpBefore` filter on is `signedUpAt`"), and an input the server normalizes states where the applied value is echoed back.
 
 ## 4. Response documentation
 

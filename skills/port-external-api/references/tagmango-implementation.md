@@ -52,7 +52,7 @@ The controller path is only a fragment. Resolve the actual path after the global
 
 Add every new operation ID to the central registry. Verify uniqueness in the generated document, not only in the TypeScript object.
 
-Do not assume `@ExternalApi({ doc: { ... type } })` transforms runtime output. Trace active interceptors and use an explicit response-mapping seam.
+Do not assume `@ExternalApi({ doc: { ... type } })` transforms runtime output. Trace active interceptors and use an explicit response-mapping seam. As of recent inspection, `ExternalApi` is the one `Generic*Api` variant that does **not** attach `RespondWithDto`, so no `plainToInstance` allowlisting runs on external routes — the feature's `*.mapper.ts` is the only exposure enforcement, and `@Expose()` decorators on `Ext*` DTOs are inert there. Re-verify this seam in the current code, and never let a service hand repository documents straight through on the assumption the DTO filters them.
 
 Do not assume the overview prose in Swagger matches the runtime response envelope. Compare docs, interceptor/service code, and a real integration response; fix in-scope drift or report it as a blocker.
 
@@ -84,7 +84,7 @@ Repositories should own typed persistence/query mechanics, not business decision
 
 Keep provider/queue/file clients behind injectable service dependencies so the capability remains reusable and independently observable by the later testing workflow. Keep public exposure policy in an explicit external mapper/DTO under the external API surface; a shared service result may contain domain data that one transport intentionally omits.
 
-Define each canonical public representation (summary and detail tiers) once, in the owning resource concept's module under the external surface, and export it for composition. An endpoint that embeds another concept imports that concept's summary DTO and mapper rather than shaping its fields locally — even when the embedded concept has no standalone endpoint yet. `libs/services` results stay domain-shaped; representation tiers are an external-surface concern. An external-only request restriction must stay in the external adapter unless it is a real domain invariant that core must also enforce.
+Define each canonical public representation (summary and detail tiers) once and derive everything else from it. The repository's convention is a `PickType` derivation chain colocated in `apps/core-api/src/shared/dto/examples/<resource>.dto.ts`, so drift between the DB shape and the external shape is visible in one file: `<Resource>Dto` (full DB shape) → `Ext<Resource>Dto` (verbose tier: allowlist pick plus renamed and grouped fields) → `Ext<Resource>SummaryDto` (embedded tier: pick of the verbose tier). Shared embedded field lists (`mangoSummaryFields`, `badgeSummaryFields`) live in `libs/services/src/lib/embedded-summary.types.ts`. An endpoint that embeds another concept imports that concept's `Ext<Resource>SummaryDto` and mapper rather than shaping its fields locally — even when the embedded concept has no standalone endpoint yet. A one-endpoint specialization derives from a canonical tier with `OmitType`/`PickType` plus targeted re-expansion (see `ExtCourseDetailsDto`), never a hand-restated class. `libs/services` results stay domain-shaped; representation tiers are an external-surface concern. An external-only request restriction must stay in the external adapter unless it is a real domain invariant that core must also enforce.
 
 An external adapter/facade earns its existence only when it maps a public contract, applies external-only policy, or coordinates a meaningful boundary. Do not add a service that merely forwards one method.
 
@@ -152,6 +152,8 @@ The global `ValidationPipe` currently uses whitelist/transform behavior; determi
 Preserve the difference between create defaults and patch semantics. Never use truthiness for fields where `false`, `0`, empty, and absent differ. Avoid `value || default` when zero/false is valid.
 
 Map public requests into a named domain input. Map domain results into a dedicated external response DTO using an explicit allowlist. Prefer class-transformer or a focused pure mapper consistent with current standards. Record the exact allowlist and any runtime serialization uncertainty for the later testing workflow.
+
+The mapper owns every rename between storage names and public names (`isDrmEnabled` → `settings.enableDRM`, `mangoArr` → `mangoes`), applied identically in both directions: the name and grouping a request accepts are the name and grouping the response returns. Derive write DTOs from the canonical response tiers so a write-then-read round-trips on identical paths, and name filter parameters after the response field they operate on.
 
 Use stable domain errors and one HTTP mapping boundary. Document every externally reachable error code. Do not duplicate the same `try/catch` mapping across controller methods when a current exception filter/mapper can own it.
 
