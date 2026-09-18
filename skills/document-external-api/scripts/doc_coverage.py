@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
 """Mechanical documentation-coverage check over a generated OpenAPI document.
 
-Measures presence, not quality: missing summaries, thin descriptions,
+Measures presence, not quality: missing summaries and descriptions,
 undescribed parameters and schema properties, absent error responses,
 unregistered tags, duplicate operation IDs, placeholder examples,
-deprecations without replacement guidance. Presence is the floor —
-the documentation rubric is the bar.
+deprecations without replacement guidance. Missing prose needs review,
+not automatic expansion; the rubric determines whether it adds meaning.
 
 Accepts JSON directly. For YAML it shells out to `node` with the target
 repository's own `yaml` package (pass --repo so `require('yaml')` resolves).
@@ -27,7 +27,6 @@ from pathlib import Path
 
 HTTP_METHODS = {"get", "post", "put", "patch", "delete", "head", "options", "trace"}
 PLACEHOLDER_EXAMPLES = {"string", "foo", "bar", "baz", "test", "example", "abc", "xyz", "lorem"}
-THIN_DESCRIPTION_CHARS = 100
 REPLACEMENT_HINTS = ("instead", "replaced", "use ", "migrate", "see ")
 
 YAML_BRIDGE = (
@@ -137,11 +136,8 @@ def check_operation(spec, method, url, op, path_item, registered_tags):
     description = str(op.get("description") or "").strip()
     if not description:
         gaps.append("missing description")
-    else:
-        if len(description) < THIN_DESCRIPTION_CHARS:
-            gaps.append(f"thin description ({len(description)} chars)")
-        if summary and description.lower() == summary.lower():
-            gaps.append("description merely restates the summary")
+    elif summary and description.lower() == summary.lower():
+        gaps.append("description merely restates the summary")
 
     if op.get("deprecated") and not any(h in description.lower() for h in REPLACEMENT_HINTS):
         gaps.append("deprecated without replacement guidance in the description")
