@@ -1,111 +1,94 @@
 # External API Documentation Rubric
 
-## Contents
-
-1. The standard
-2. Operation documentation
-3. Request documentation
-4. Response documentation
-5. Error documentation
-6. Examples
-7. Style and voice
-8. Overview vs endpoint
-9. Honesty rules
-
 ## 1. The standard
 
-An endpoint is documented when a consumer who has only the generated OpenAPI document — no dashboard, no support channel, no source access, possibly an AI agent — can:
+Aim for the shortest clear, complete reference. Simplify wording and structure without dropping integration facts or compressing them into cryptic fragments.
 
-- decide **whether this is the endpoint they need**, including against sibling endpoints;
-- build the minimal valid request and every important optional variation without trial and error;
-- interpret **every** response field and predict pagination, ordering, and empty-state behavior;
-- anticipate every error they can trigger and know what to change when they hit one.
+Document enough for a third-party developer to choose the endpoint, build a valid request, interpret its response, and handle relevant errors. Evaluate the generated OpenAPI document as a whole, including schemas and the overview. Completeness does not require repeating each fact in operation prose.
 
-The bar is completeness of **consumer-relevant claims, not completeness of detail**. The document describes observable behavior the consumer must plan around — never the implementation that produces it. Every sentence must change what a correct integration looks like; a sentence that doesn't (internal computation, code structure, field-by-field logic narration) is a gap in the other direction: over-documentation buries the claims that matter under noise.
+Publish a fact only when it changes a consumer's request, interpretation, or next action. Keep source traces, database queries, implementation branches, module names, and legacy comparisons in working notes. Translate relevant implementation behavior into its public consequence: “Results may take up to 10 minutes to appear,” without explaining the cache or worker behind it. Explain calculations only when needed to interpret a public metric, such as its denominator or included population.
 
-Each numbered section below is a checklist item in the endpoint's gap table: met, gap, or justified N/A.
+Audit each section below as met, gap, or justified N/A. Removing noise and duplication is part of closing a gap.
 
 ## 2. Operation documentation
 
-**Summary** — a short verb phrase naming the action in consumer terms, matching the surface's existing casing convention. It is the link text in the sidebar; it must distinguish this endpoint from its siblings at a glance.
+Use a short action summary that distinguishes the operation from its siblings. Add a description only for integration facts the summary and schema do not express. A short paragraph is usually enough; add bullets or headings only when the necessary content warrants them. Do not require a purpose/nuances/related-endpoints template.
 
-**Description** — what a consumer reads before committing to the endpoint. Descriptions are markdown documents: the renderer gives them headings, side navigation, and callouts, so structure a long description with subheadings, bullet lists, and notes instead of paragraph walls — and keep a short one to a paragraph or two; structure serves length, never decoration. Content, in this order:
+Investigate these behaviors when applicable, then document only relevant findings in their owning location (§8):
 
-1. **Purpose** — what the endpoint represents, the consumer scenario it serves, and when to use a sibling endpoint instead; a named sibling is a markdown link built with the documentation-URL helper, not just a name the consumer has to hunt for.
-2. **Nuances** — a bullet list, each item one sentence of observable behavior.
-3. **Related endpoints** — which endpoints produce this one's inputs or consume its outputs, linked, when not already covered by field-level obtainment links.
+- Ordering, tie-breakers, pagination, and empty results.
+- Defaults, filter combinations, absent versus empty inputs, and conditional requirements.
+- Retry safety, idempotency, partial failures, and visible side effects such as notifications.
+- Freshness guarantees and endpoint-specific access or tenant scope.
+- Deprecation and the replacement operation.
 
-The *nuance hunt* below is an investigation checklist, not a writing template: answer every item from code, packet, or captured runtime — never assumed — then write **only the answers that change what the consumer builds**. A nuance is stated as observable behavior ("results may lag writes by up to 10 minutes"), never as the code that produces it. Hunt, when applicable:
+Do not turn an incidental code path into a public guarantee. If ordering or freshness matters but has no guarantee, state the limitation. Keep field-specific defaults, bounds, enum options, and obtainment links on the field rather than recapping them here. Link a sibling operation only when it helps the reader choose or complete a flow, using `getExternalApiDocumentationUrl`.
 
-- **Defaults** — the actual coded default of every optional behavior the endpoint has (period selected, sort applied, scope assumed).
-- **Ordering** — the guarantee including tie-breakers, or an explicit "no order is guaranteed". Silence reads as a promise of stability.
-- **Pagination semantics** — how page/limit interact, bounds, and what an out-of-range page returns.
-- **Filter interaction** — what include+exclude of the same value does, empty array vs absent, combination semantics (AND/OR).
-- **Limits** — array caps, string lengths, size ceilings beyond the global rate limit.
-- **Write semantics** — idempotency, retry safety, partial-failure behavior, and consumer-visible side effects (notifications sent, emails fired, state transitioned).
-- **Freshness** — caching or staleness windows and what may trigger a refresh, when results can lag writes.
-- **Tenant scoping** — what the `x-whitelabel-host` context implies for which data this endpoint can see or touch, when it is not obvious.
-- **Deprecation** — `deprecated: true` never stands alone; the description names the replacement operation and the migration in one sentence.
+Use the central operation ID registry and verify uniqueness in the generated document.
 
-Operation ID from the central registry, unique in the generated document.
+## 3. Request documentation and schema metadata
 
-## 3. Request documentation
+Let Swagger/OpenAPI express facts it supports: type, format, enum, default, requiredness, nullability, numeric bounds, string lengths, array limits, and patterns. Match actual validation and behavior. Do not repeat these facts as sentences or option lists in descriptions.
 
-Every parameter and body property carries a description that **adds information the name doesn't already carry**. `userId: "The user ID"` fails the bar. State:
+- Reuse the canonical enum, allowed-value array, or constant map used by the public contract. Select keys or values according to the actual wire representation; include only the supported public subset. Do not blindly export an internal map or numeric enum's reverse mappings.
+- Pass those values through the Swagger decorator's `enum` metadata. Reuse existing policy constants for defaults and bounds. Do not create a documentation-only copy of a value list or a helper for a single trivial expression.
+- When individual options need explanation beyond their names, derive those explanations from an existing consumer-safe value/label or value/meaning map. A dynamic list that merely repeats the enum is still duplication. If no suitable mapping exists, explain only the non-obvious semantics needed; do not invent meanings from internal labels or introduce a second exhaustive catalog.
+- Keep examples representative, not exhaustive. Verify that they remain valid members of the generated schema.
 
-- **meaning** — which user, which resource, in consumer terms;
-- **format** — ObjectId hex string, ISO 8601 timestamp, timezone assumptions, units (or put the unit in the name: `durationSeconds`, `amountMinorUnits`);
-- **obtainment** — which endpoint or flow produces this value, linked to that endpoint's reference page via the documentation-URL helper (`getExternalApiDocumentationUrl`) so the consumer can jump straight to it; an input the consumer cannot source is undocumented no matter how well described;
-- **constraints** — min/max/enum/pattern mirroring the *actual validators*; prefer citing the same shared policy constants the validators use so docs cannot drift from enforcement; a documented constraint nothing enforces is a finding, not a doc;
-- **requiredness truth** — required/optional as validated, defaults stated on the property, conditional and mutually-exclusive relationships cross-referenced *on both fields involved*;
-- **enums** — each value's meaning when not self-evident, not just the value list.
-- **response linkage** — a filter or sort parameter states which response field it operates on ("the field `signedUpAfter` and `signedUpBefore` filter on is `signedUpAt`"), and an input the server normalizes states where the applied value is echoed back.
+Write field prose only for information the name and metadata leave unclear: which resource an ID identifies, where to obtain it, units or timezone assumptions, the meaning of omission, or which response field a filter targets. Link obtainment endpoints on the relevant field. For a relationship between fields, explain the rule once on the containing schema or operation; use a short cross-reference only where needed to make it discoverable.
+
+For example, a status field's description can say “Filter by payment status.” Its `enum` metadata supplies the allowed values from the existing contract constant; the description must not append “Possible values: …”. A page-size limit belongs in schema bounds, not another sentence in the controller description.
+
+If the field name and schema are sufficient, omit redundant prose and justify the coverage warning. A documented constraint without runtime enforcement is a finding, not permission to change validation.
 
 ## 4. Response documentation
 
-- Every response field described with its consumer meaning — what they can do with it, where it can be used as an input.
-- Null/omission policy stated per optional field: is it `null`, absent, or an empty collection, and what does each mean.
-- Enum and status fields explain each value a consumer must branch on.
-- Collection responses state their ordering (or disclaim it) and their empty shape.
-- The success description on `doc.ok` says what "success" delivered, not "Operation successful".
-- A field you cannot give a consumer use case for is a **possible exposure defect**: raise the finding to `audit-external-api-port` and pause on that field — neither advertise it with prose nor quietly hide it; whether it stays in the contract is a contract decision, not a documentation one.
+Make every field interpretable using its name, schema, and only the additional prose it needs. Explain non-obvious business meaning, units, or how to use an output in a later request. Apply §3's rules to response enums and other metadata too.
+
+Encode nullability and optionality in the schema; explain what null or absence means only when needed. State collection ordering and empty-state behavior once at the relevant collection or operation. Explain status values that require different consumer actions without reproducing the full option list.
+
+Make `doc.ok` say what was returned or completed in a short sentence. Do not use it to repeat the operation description or enumerate response fields.
+
+If a field has no defensible consumer use, report a possible exposure defect to `audit-external-api-port`; do not hide the field or invent a use for it.
 
 ## 5. Error documentation
 
-- Every scenario in `errors: [...]` traces to a reachable throw path; every reachable externally-visible error code appears in `errors: [...]`. Both directions are checked — an unreachable documented error and an undocumented reachable error are each gaps.
-- Descriptions are consumer-actionable: what condition produced it and what to change — "One or more badge IDs do not belong to this creator; fetch valid IDs from List Badges" beats "Invalid badge filter".
-- Definitions come from the central error registry (`getErrDefinition`), never inline literals.
-- Validation-shaped 400s from DTO constraints don't need one scenario per field, but the endpoint documents that constraint violations return the standard validation error shape when it has a body worth noting.
+Match `errors: [...]` to reachable, externally visible operation-specific error codes in both directions. Use central definitions through `getErrDefinition`. Keep shared authentication and validation behavior in the overview or shared error documentation rather than repeating it per operation.
+
+Explain the condition and useful recovery action in the error scenario itself: “One or more badge IDs are unavailable. Fetch valid IDs from List Badges.” Link the named operation when appropriate. Do not repeat the error catalog in the operation description or narrate internal validation order. DTO validation does not need a scenario for every field constraint.
 
 ## 6. Examples
 
-- Realistic platform data — plausible names, titles, amounts, ObjectId-shaped IDs — never `"string"`, `"foo"`, `"test"`. The one exception: credentials are always placeholders (`<your-api-key>`).
-- One operation's examples tell **one coherent story**: the IDs in the request appear in the response, counts match array lengths, timestamps are ordered sensibly. Captured runtime evidence from test runs (redacted) is the best source.
-- Examples exercise the documented semantics: a filter example shows a filter actually filtering; a pagination example is not page 1 of 1.
+Use realistic, redacted platform data; credentials remain placeholders such as `<your-api-key>`. Avoid generic values such as `"string"` or `"foo"`.
+
+Keep request and response examples coherent: related IDs agree, counts and timestamps make sense. Prefer captured runtime evidence when available. Add an example when it clarifies a meaningful combination or response shape; do not duplicate schema-generated examples or enumerate every possible option.
 
 ## 7. Style and voice
 
-- Consumer language throughout. Platform terms a consumer meets in the product (mango, creator, custom host) are fine; internal vocabulary is not — no Mongo/Mongoose/schema field names, module or function names, frontend labels, or "same as the old API" references. Legacy provenance is packet material, never contract material.
-- Active voice, present tense, sentences over fragments. Descriptions are markdown: structure a long one with subheadings, bullet lists, and note callouts — headings feed the reader's side navigation — but keep heading depth shallow (one level of subheadings) and give a short description no structure it doesn't need.
-- Concise by selection, not compression: cover purpose, nuances, and related endpoints in the fewest sentences that carry them, and cut the sentence that changes nothing for the consumer rather than shortening every sentence into fragments.
-- Observable behavior only. How a value is computed, which module produces it, what the code checks in what order — implementation is never contract material. A field's description says what the value means and how to use it, not how it is derived; derivation enters the docs only when it surfaces as behavior the consumer must plan around (staleness, ordering, side effects).
-- Emphasis sparingly and by meaning: call out destructive, irreversible, or security-relevant behavior prominently; a non-obvious but safe nuance is a plain sentence. A warning on every endpoint means none of them read as important.
-- The description never restates what the spec already encodes (method, path, status codes) — it spends its words on what the schema cannot say.
+Write like a developer explaining an API to another developer: direct verbs, familiar words, present tense, and short complete sentences. Address the reader as “you” when giving an action. Use public domain terms consistently.
 
-## 8. Overview vs endpoint
+- Prefer “Returns certificates issued to this learner” to “This endpoint enables consumers to retrieve the set of certificate resources associated with the specified learner.”
+- Prefer “Omit this field to include all courses” to “It is important to note that omission of this parameter results in the absence of course-based filtering.”
+- Cut introductions such as “This endpoint allows you to,” repeated “Please note,” and generic claims of seamless, robust, or comprehensive behavior.
+- Avoid formulaic headings, repeated caveats, and warnings for ordinary behavior. Highlight destructive effects when the reader must act on them.
+- Read the page as one document. Delete sentences that repeat its schema, another description, or the overview. Do not add prose to satisfy a character count or make every field look equally documented.
 
-The overview description in `external-api-document.ts` owns the once-only facts: authentication headers, tenant header, response envelope, global rate limits, general error shape. Endpoint docs:
+## 8. One authoritative home per fact
 
-- never repeat an overview fact except where the endpoint deviates from it — and a deviation is stated explicitly *as* a deviation;
-- never contradict the overview; if the overview itself is wrong or stale against runtime, that is a finding on the overview, fixed there once, not compensated per endpoint;
-- new cross-cutting facts discovered while documenting (a shared pagination convention, a shared freshness rule) get proposed for the overview or a shared DTO rather than duplicated into each endpoint.
+| Fact | Owning location |
+| --- | --- |
+| Authentication, tenant header, envelope, global rate limit, common error shape | Overview in `external-api-document.ts` |
+| Allowed values, defaults, formats, bounds, requiredness, nullability | Swagger/OpenAPI schema metadata |
+| Field meaning, units, source of an identifier, non-obvious value semantics | Relevant DTO property or parameter description |
+| Shared pagination or other reusable field semantics | Existing shared DTO/schema |
+| Endpoint purpose, interactions across fields, retry behavior, side effects | Operation description or containing schema, whichever owns the rule |
+| Error condition and recovery | Error scenario |
+| Domain orientation | Tag description in `buildExternalApiDocumentOptions` |
 
-Tags are part of this layer: every tag a controller uses is registered in `buildExternalApiDocumentOptions` with a consumer-facing description of the domain, not a restatement of the tag name.
+Reference the owning location instead of copying its text. Reuse shared DTO metadata where semantics match; do not generalize an endpoint-specific rule into a shared schema. An endpoint deviation from a global convention belongs on that endpoint, stated explicitly. Correct stale shared documentation at its source within scope, and account for affected consumers.
 
-## 9. Honesty rules
+## 9. Honesty and final review
 
-- **Trace or flag.** Every claim of behavior (default, order, limit, side effect, error condition) has a trace anchor in the working notes — code location, packet row, or captured run. No anchor → the claim is not written; the gap is reported instead.
-- **Existing prose is a claim.** Verify every sentence you keep with the same rigor as one you write. Stale prose that survives a documentation pass is worse than absent prose — it now carries this pass's authority.
-- **The code wins on "is".** When docs, packet, and code disagree, the docs must describe what the code does now; the disagreement itself is routed as a finding (packet correction, or bug to `port-external-api`).
-- **Never document aspiration.** Behavior that "will be fixed", "should" hold, or exists only in an unmerged branch does not enter the contract.
-- **Undocumentable is reportable.** Behavior too erratic, accidental, or exposure-laden to describe honestly is exactly the material for a finding; leaving it vague in prose converts a defect into a promise.
+Trace claims to current code, packet rows, or captured responses in working notes. Verify existing prose too. When sources disagree, describe verified current behavior and report the discrepancy; never document an aspiration or silently fix runtime behavior.
+
+Inspect the regenerated document for missing integration facts, duplicate explanations, internal details, and enum/default/constraint drift. A clean coverage report cannot establish these qualities. A justified missing description is preferable to filler. Report unresolved behavior or exposure questions instead of turning them into confident prose.

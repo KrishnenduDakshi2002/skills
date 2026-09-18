@@ -1,11 +1,12 @@
 ---
 name: document-external-api
-description: Raise the generated OpenAPI documentation of TagMango external API endpoints to a consumer-ready bar — purpose, nuances, field semantics, defaults, errors, and realistic examples — through docs-only code changes (Swagger decorators, DTO metadata, error scenarios). Never changes runtime behavior. Documents one operation, a tag, or backfills the whole external surface.
-argument-hint: <operation-id | tag | controller-path | --all>
+description: Raise the generated OpenAPI documentation of TagMango external API endpoints to a consumer-ready bar — concise integration facts, schema metadata from shared constants, actionable errors, and realistic examples — through docs-only code changes (Swagger decorators, DTO metadata, error scenarios). Never changes runtime behavior. Documents one operation, a tag, or backfills the whole external surface.
 disable-model-invocation: true
 ---
 
 # Document External API
+
+**Minimal without losing facts.** Make the reference easy to understand and scan. Keep every fact needed to integrate correctly; remove filler, repetition, and internal detail. Judge brevity across prose and schema together, not by word count alone.
 
 The reader is an integrator — increasingly an AI agent — with no dashboard access, no support channel, and no TagMango insider vocabulary. The generated OpenAPI document is everything they get. Every endpoint must let that reader build a correct request, interpret every response field, and predict every error from the document alone — in the fewest words that do it. The document is a contract, not a code walkthrough: it carries observable behavior the consumer must plan around, never the implementation that produces it, and never a sentence that doesn't change what the consumer builds.
 
@@ -17,7 +18,7 @@ The reader is an integrator — increasingly an AI agent — with no dashboard a
 
 Decorators are the source: `@ExternalApi({ doc, response, errors })` on each handler plus `@ApiProperty` metadata on DTOs. The repository's preview script (`apps/core-api/src/scripts/preview-external-swagger.ts`) generates the external OpenAPI document, which downstream documentation tooling renders. Consequences:
 
-- Judge everything in the **generated document**, not in the TypeScript — that is what the consumer sees. Descriptions are markdown and render as doc pages with headings, side navigation, and callouts — structure them accordingly.
+- Judge everything in the **generated document**, not in the TypeScript — that is what the consumer sees. Use plain paragraphs by default; add markdown structure only when it helps readers scan necessary detail.
 - `errors: [...]` scenarios render as named examples per status code — one entry per reachable `errorCode`, via the central `getErrDefinition` registry.
 - Operation IDs come from the central registry and become page slugs and client method names; never inline a string.
 - When naming another endpoint would make a description correct and complete — where an input value comes from, which sibling to use instead — link it: a markdown link whose URL is built with `getExternalApiDocumentationUrl(tagSlug, operationId)` from `apps/core-api/src/api-modules/external/external-api-documentation-url.ts`, never a hardcoded docs URL. The helper keeps links valid across environments and origin changes.
@@ -28,13 +29,13 @@ Decorators are the source: `@ExternalApi({ doc, response, errors })` on each han
 
 ### 1. Scope and baseline
 
-Resolve the argument to a concrete set of operations: one operation ID, every operation under a tag or controller, or the full external surface. Generate the current document to a temporary path (discover the invocation from the repository — Nx target, package script, or ts-node — never assume), then take the mechanical baseline:
+Accept an operation ID, tag, controller path, or `--all`. Resolve the argument to a concrete set of operations: one operation ID, every operation under a tag or controller, or the full external surface. Generate the current document to a temporary path (discover the invocation from the repository — Nx target, package script, or ts-node — never assume), then take the mechanical baseline:
 
 ```sh
 python3 <skill-directory>/scripts/doc_coverage.py <spec-path> --repo <repo-root> [--operation <id> ...]
 ```
 
-Keep its output verbatim; it is the before-evidence for the handoff. The script measures presence — missing summaries, thin descriptions, undescribed fields, absent error responses, placeholder examples. Presence is the floor. The rubric is the bar.
+Keep its output verbatim; it is the before-evidence for the handoff. The script flags missing metadata and placeholder examples; it cannot judge relevance, duplication, or voice. Treat missing prose as a review prompt: if the summary or schema already says everything needed, record a justification instead of adding filler. There is no minimum description length.
 
 ### 2. Gather the evidence
 
@@ -50,14 +51,18 @@ Read [documentation-rubric.md](references/documentation-rubric.md) and walk ever
 
 ### 4. Write the documentation
 
-Work endpoint by endpoint, rubric in hand. A description is a structured markdown document — purpose and use case first, then nuances as a bullet list, then related endpoints, with subheadings and note callouts on long descriptions rather than paragraph walls. Write at the contract level: each nuance is one sentence of observable behavior, never the code logic behind it, and a hunted nuance that changes nothing for the consumer stays in the working notes, not the docs. Every optional field states its coded default; every collection states its ordering or explicitly disclaims one; every input identifier names the endpoint that produces it; every reachable error code appears with a consumer-actionable description; examples are realistic platform data telling one coherent story. Register new tags and operation IDs centrally. Prefer constants already shared with validators (policy objects, enums) over retyped literals so docs cannot drift from enforcement.
+Work endpoint by endpoint using the rubric's ownership rules: schema metadata for machine-readable facts, field descriptions for field meaning, operation prose for behavior spanning fields, and the overview for global conventions. Give each fact one authoritative home; link to it when needed instead of repeating it. Keep evidence and implementation details in working notes.
+
+Write the shortest natural explanation that lets a third party integrate correctly. Do not impose purpose/nuances/related-endpoints sections on every operation or narrate every discovered code path. Use Swagger features before prose: derive enum values, defaults, and bounds from existing public contract constants; never maintain a second list of options in a description. Generate value-specific explanations from existing mappings only when they add meaning beyond the enum. See rubric §§3 and 7 for selection and wording rules. Register new tags and operation IDs centrally.
 
 ### 5. Regenerate and verify
 
 Regenerate the document to a fresh temporary path and verify mechanically:
 
 - `doc_coverage.py` reports clean for the scoped operations, or every remaining gap has a recorded justification;
-- diff the before/after specs: only in-scope operations and their reachable schemas changed;
+- inspect generated enums, defaults, bounds, requiredness, and nullability against the runtime contract; check that descriptions do not repeat those facts or expose internal map entries;
+- read each operation together with its schemas and overview; remove repeated facts, internal explanations, and filler without losing integration requirements;
+- diff the before/after specs: only in-scope operations and their reachable schemas changed; account for every other operation affected by a shared schema edit;
 - `git diff` shows docs-only edits — decorator metadata, DTO option objects, registries, prose — and nothing else;
 - run the repository's format, lint, typecheck, and build targets (docs are code); never run test suites here.
 
