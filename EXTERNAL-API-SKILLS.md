@@ -1,6 +1,6 @@
 # External API Skills — Usage Guide
 
-Five skills cover the lifecycle of moving a TagMango backend endpoint (`apps/api` / `apps/core-api`) onto the external API surface. Four form a pipeline with hard handoff gates; the fifth is the code owner's conformance review for changes that arrive outside the pipeline:
+Six skills support TagMango external APIs. Four form the endpoint-porting pipeline from `apps/api` / `apps/core-api`; owner review and unit/integration coverage also work independently of that pipeline:
 
 | Stage | Skill | Invoke with | Writes | Ends at |
 |---|---|---|---|---|
@@ -9,6 +9,9 @@ Five skills cover the lifecycle of moving a TagMango backend endpoint (`apps/api
 | 3. Verify | `test-external-api-port` | `<packet-path \| operation-slug> [--report [run-id]]` | test-run artifacts + HTML reports | packet `VERIFIED` (or findings) |
 | 4. Document | `document-external-api` | `<operation-id \| tag \| controller-path \| --all>` | docs-only code changes | consumer-ready OpenAPI docs |
 | Owner review | `review-external-api` | `[pr-number \| branch \| path] [--comment]` | nothing (optional PR comments on confirm) | P0–P3 findings + one recommendation |
+| Unit/integration coverage | `cover-external-api` | `<endpoints \| controller-path> [outline \| implement reviewed specs]` | case-only specs first; test bodies, shared builders, and needed test seams after review | reviewed outline, then executable coverage |
+
+Use `cover-external-api` for a review-first test-writing workflow: draft pending `describe`/`it.todo`/`it.skip.each` cases directly in their final `.spec.ts` files, then implement those same cases after review. It covers business behavior, public response contracts, persistence, and side effects with shared document builders and memory-server-only Mongo. Cleanup uses only filters targeting run-created data, including when older test helpers recommend database drops. It does not run E2E tests, contact live endpoints, or certify a port packet.
 
 ## Install
 
