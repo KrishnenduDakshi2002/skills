@@ -25,7 +25,7 @@ Protect external API business rules, public responses, persisted outcomes, and s
 
 ## Stage 1: case-only specs
 
-Write new case declarations at their final paths. Colocate unit `<source>.spec.ts` files; put `<behavior>.integration.spec.ts` under feature-owned `tests/` unless current repository conventions specify otherwise. Preserve existing implemented tests; append pending cases without blanking or skipping working coverage.
+Write new case declarations at their final source owners. Colocate unit `<source>.spec.ts` files with the source; put `<behavior>.integration.spec.ts` in that owning feature's `tests/` folder. Tests for code in `libs/services` belong under `libs/services`, including service + repository integration; an external API caller does not make them core-api external-module tests. Apply the same rule to repositories, utilities, DTOs, and adapters using [the placement rules](references/test-layers.md#place-specs-with-the-source-owner). Preserve existing implemented tests; append pending cases without blanking or skipping working coverage.
 
 - Use at most two `describe` levels: subject/feature, then business context. Let each `it` name state the observable outcome. Name the endpoint and test boundary clearly enough to find the suite.
 - Separate specs by the layer and behavior they protect using [the layer testing strategy](references/test-layers.md). Enumerate relevant cases for every owning layer during this stage, including repository-owned business rules. Do not postpone lower-layer case discovery until implementation or hide the whole inventory in one endpoint suite.
