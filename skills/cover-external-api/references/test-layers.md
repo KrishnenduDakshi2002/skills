@@ -24,17 +24,25 @@ Test guards/authorization policy at their owning boundary too. Do not consider a
 - Do not mandate a new test file for every class or layer. Reuse effective existing suites; omit isolated tests for a trivial forwarding layer if integration already proves its contract. Explain the omission in the handoff. Never omit a substantive rule merely because it lives below the service.
 - Distinguish architectural layer coverage from line coverage. Report which contracts were actually exercised, including boundary gaps left by mocks.
 
-## Keep the two-stage review legible
+## Place specs with the source owner
 
-Organize case-only specs at their final owners, for example:
+Choose the location from the code or behavior under test, not the endpoint that calls it. Keep unit specs beside their source and integration specs in the owning feature's `tests/` folder, within the same app or library.
+
+- Service/business-rule tests for `libs/services` stay in `libs/services`, including service + real repository + memory Mongo integration. Do not place them under `apps/core-api/src/api-modules/external` merely because an external route uses the service.
+- Keep repository/schema and utility tests with their actual source owners, such as `libs/repository`, `libs/schemas`, or `libs/utilities`. A repository suite may cover its schemas' persistence constraints without requiring a separate schema suite.
+- Keep external DTO, controller, mapper, and response-pipeline tests beside the corresponding external adapter. Focused adapter integration may exercise library services; its distinct purpose is to prove the adapter contract and wiring, not to house the service's full business-rule matrix.
+- Use an app-level `src/tests/` only for app composition spanning features when no single feature owns the behavior. Calling several repositories from one service does not remove that service's ownership.
+- Follow local naming and folder conventions within the source owner; older misplaced specs or a convenient app runner are not precedents for placing library tests in an app.
+
+Organize case-only specs at these final owners from stage 1, for example:
 
 ```text
-<external-feature>/dto/list-items.dto.spec.ts
-<service-feature>/list-items.service.spec.ts
-<service-feature>/tests/list-items.integration.spec.ts
-<repository-feature>/tests/list-items.repository.integration.spec.ts
-<external-feature>/mappers/item.mapper.spec.ts
-<external-feature>/tests/list-items-response.integration.spec.ts
+libs/services/src/lib/<feature>/<feature>.service.spec.ts
+libs/services/src/lib/<feature>/tests/list-items.integration.spec.ts
+libs/repository/src/lib/<feature>/tests/list-items.repository.integration.spec.ts
+apps/core-api/src/api-modules/external/<feature>/dto/list-items.dto.spec.ts
+apps/core-api/src/api-modules/external/<feature>/mappers/item.mapper.spec.ts
+apps/core-api/src/api-modules/external/<feature>/tests/list-items-response.integration.spec.ts
 ```
 
-These are ownership examples, not a requirement to create six files. Follow actual source names and repository conventions. Use suite names to distinguish unit decisions, repository integration, and response integration; keep existing two-level `describe` depth. Review all relevant layer outlines together before implementing the same files in stage 2.
+These are ownership examples, not a requirement to create six files. Derive actual paths and filenames from the source. Use suite names to distinguish unit decisions, repository integration, and response integration; keep existing two-level `describe` depth. Review all relevant layer outlines together before implementing the same files in stage 2.

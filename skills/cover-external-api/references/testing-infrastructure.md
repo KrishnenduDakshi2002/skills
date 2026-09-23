@@ -10,6 +10,8 @@ The inspected backend checkout contains these starting points; verify them in th
 - Historical builders: `apps/core-api/src/utils/test/mock-data-builders`. Both old definitions/imports and shared builders can coexist.
 - Runner/setup: root and per-project Jest configs, `apps/core-api/jest-integration.config.ts`, app global setup/teardown, `libs/services/jest.config.ts`, TypeScript aliases, and Nx targets.
 
+Keep runner discovery aligned with [source ownership](test-layers.md#place-specs-with-the-source-owner). If a library lacks an integration target or its config mixes unit and integration discovery, record the gap in stage 1 and configure the owning library's runner in stage 2. Reuse shared `libs/testing` infrastructure; do not move library specs into core-api or import app-owned setup to obtain a working harness. Verify the intended specs are discovered and integration setup does not run for unit suites.
+
 Inspect builder implementations and all their consumers before migration. Compare defaults, methods, inheritance, types, date behavior, and build/mutation semantics; identical names do not prove interchangeable behavior.
 
 - Prefer the existing `libs/testing/src/builders` owner. If absent in that checkout, establish the equivalent shared test-only library using the repository's conventions. Do not place test builders in production utilities or make a library import an app.
