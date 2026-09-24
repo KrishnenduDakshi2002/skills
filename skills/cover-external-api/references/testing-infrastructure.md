@@ -10,16 +10,38 @@ The inspected backend checkout contains these starting points; verify them in th
 - Historical builders: `apps/core-api/src/utils/test/mock-data-builders`. Both old definitions/imports and shared builders can coexist.
 - Runner/setup: root and per-project Jest configs, `apps/core-api/jest-integration.config.ts`, app global setup/teardown, `libs/services/jest.config.ts`, TypeScript aliases, and Nx targets.
 
-Keep runner discovery aligned with [source ownership](test-layers.md#place-specs-with-the-source-owner). If a library lacks an integration target or its config mixes unit and integration discovery, record the gap in stage 1 and configure the owning library's runner in stage 2. Reuse shared `libs/testing` infrastructure; do not move library specs into core-api or import app-owned setup to obtain a working harness. Verify the intended specs are discovered and integration setup does not run for unit suites.
+Keep runner discovery aligned with [source ownership](test-layers.md#place-specs-with-the-source-owner). If a library lacks an integration target or its config mixes unit and integration discovery, record the gap in stage 1 and configure the owning library's runner in stage 2. Reuse shared `libs/testing` infrastructure; do not move library specs into core-api or import app-owned setup to obtain a working harness. Verify unit and integration specs are discovered by their respective Jest configurations and integration setup does not run for unit suites. “No tests found” from a unit configuration that excludes integration specs is not an integration result; discover and execute those specs through the integration configuration.
 
 Inspect builder implementations and all their consumers before migration. Compare defaults, methods, inheritance, types, date behavior, and build/mutation semantics; identical names do not prove interchangeable behavior.
 
-- Prefer the existing `libs/testing/src/builders` owner. If absent in that checkout, establish the equivalent shared test-only library using the repository's conventions. Do not place test builders in production utilities or make a library import an app.
-- Consolidate duplicates and preserve existing core-api fixture behavior. Update all consumers of each migrated builder, exports, aliases, test resolution, and dependency boundaries. A temporary old-path re-export is acceptable for a demonstrated compatibility need; it must contain no duplicate implementation. Report any unmigrated builders explicitly.
+- Prefer the existing `libs/testing/src/builders` owner. If absent in that checkout, report the ownership gap; obtain separate authorization if establishing it changes package boundaries or buildability. Do not place test builders in production utilities or make a library import an app.
+- Consolidate only builders required by the selected endpoint coverage and preserve existing fixture behavior. Limit consumer/export/resolution changes to that scope. If relocating a shared builder would require unrelated consumer migration, reuse it or defer the relocation and report the blocker. A temporary old-path re-export is acceptable for a demonstrated compatibility need; it must contain no duplicate implementation. Report deferred migration explicitly.
 - Use shared builders for **all** schema/model document objects, persisted or mocked. Add/extend the shared model builder when missing; do not introduce local document literals, local model factories, or casts as a shortcut. Represent invalid/legacy document variants through explicit builder overrides too.
-- Derive builder types from existing schema/domain owners. Keep builders independent of app bootstrapping, database connections, and persistence. Keep setup/scenario persistence explicit through the suite's models/repositories.
+- Apply the ownership rules below for builder types. Keep builders independent of app bootstrapping, database connections, and persistence. Keep setup/scenario persistence explicit through the suite's models/repositories.
 - Feature-local scenario helpers may compose shared builders. They must not become a parallel document-construction layer. Plain API request bodies, expected public responses, and provider payloads are not Mongo documents and may be inline.
 - Preserve deterministic relevant values and fresh per-case data. Avoid introducing broad builder redesign during migration; remove real duplication and verify affected consumers.
+
+## Consume domain ownership without redefining it
+
+Shared test infrastructure must consume existing domain ownership, not redefine production concepts. Before adding or relocating a type, interface, constant, builder, dependency, or schema-related file, identify:
+
+1. The authoritative runtime/domain owner.
+2. Its existing exports and consumers.
+3. Nx buildability and the permitted dependency direction for the owner, test support, and consumers.
+
+Do not create a new shared schema-type file or library solely to make test builders compile. Never make a runtime schema import and re-export a type extracted for test convenience. Production schema-type relocation, package-boundary changes, making libraries buildable, and unrelated consumer migrations require separate authorization; using shared builders does not grant it.
+
+When a buildable testing library cannot import a non-buildable schema owner, prefer in order:
+
+1. An equivalent type already exposed by an existing buildable domain library.
+2. A type derived from an existing builder or public API, such as `ReturnType<Builder['build']>`.
+3. A narrow, non-exported builder fixture shape local to the builder implementation.
+
+The local shape describes only fixture needs; it is not a new domain contract or permission to construct inline documents in specs. Keep document construction in the shared builder. If none of these options preserves the required semantics and dependency direction, report the blocker rather than moving production ownership to satisfy tests.
+
+### Test-support ownership audit
+
+Before handoff, review every newly added type, interface, constant, dependency, and file against its existing owner, exports/consumers, and Nx direction. Remove additions introduced only for test convenience when an existing owner, derived type, `ReturnType`, or local fixture shape suffices. Confirm builder and consumer changes are limited to the selected endpoint coverage; report any separately authorized architecture change.
 
 ## Prove memory-server provenance before connecting
 
@@ -30,7 +52,7 @@ Unit tests start no Mongo, Redis, queue workers, schedulers, HTTP server, or rea
 3. Start a memory server owned by this test invocation. Obtain connection details from that instance's `getUri()` or a trusted handoff created by this run's global setup. Replace stale test URI values; never fall back to an inherited URI, `.env`, developer server, Docker Mongo, MCP connection, or staging/testing/production cluster.
 4. Validate parsed host/port and the run-owned URI against that provenance before any connection. Localhost, a `test_` database prefix, or a protected-name denylist alone cannot prove that Mongo belongs to this run. An arbitrary `MONGO_TEST_URI` is not trusted just because its name says test.
 5. Allocate unique suite/worker databases on that server. Bind all models/repositories to the explicit suite connection; preserve needed schemas/indexes and await index readiness for index-dependent tests. Override every required connection provider so no ambient/default connection remains.
-6. Fail before connecting if provenance is missing or mismatched. If memory-server startup/download fails, report blocked integration execution; never switch to an actual environment cluster to get tests running.
+6. Fail before connecting if provenance is missing or mismatched. If memory-server startup/download fails, report blocked integration execution. If sandbox restrictions prevent binding, report the restriction or request the required local execution permission. Never fall back to a real or inherited Mongo environment to get tests running.
 
 Do not assume an existing “safe” helper satisfies these requirements. The inspected `createIsolatedMongoConnection` accepts an environment base URI, and its `dropAndClose` path drops the database. Audit/adapt the smallest shared seam needed; use connection-only close after filtered cleanup.
 
