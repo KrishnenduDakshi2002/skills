@@ -1,0 +1,4 @@
+interface:
+  display_name: "MangoMind Knowledge Base"
+  short_description: "Add, update, search, and curate the MangoMind support KB"
+  default_prompt: "Use $mangomind-kb to help me with the MangoMind knowledge base: check I am signed in, then add, update, search, or curate products, features, and synonyms, previewing every change before it is saved."
