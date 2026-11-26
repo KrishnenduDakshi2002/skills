@@ -21,6 +21,8 @@ A pull request is work already done. Say only what happened; never ask the reade
    - Renames, refactors, many small unrelated changes: (c), groups.
    - A change nobody can see, such as CI or an internal refactor: (c), with a first group saying nothing changes for users.
 4. Draft the title, the layout, the three cells and the Listen text, within the caps in the format.
+   - If the Listen text cannot tell the whole change in 105 words (about 40 seconds) without dropping something the reader needs, the pull request does too many things. Before opening it, split the work into smaller pull requests with more targeted changes, each with its own story; stack them when one depends on another.
+   - On a pull request that is already open, do not rewrite its history on your own: publish the best story within the caps, and tell the owner in your reply that it should be split, with the split you propose.
 5. Check every box, item and cell against the diff. Rewrite any that is not exactly what the code does, including edge cases the change handles; give each its own branch.
 6. Use product words ("group", "scheduled message"), not internal ones ("cohort", "touch"). When an internal word cannot be avoided, add a few words of explanation.
 7. Reread the whole body as someone who has never seen the code. Rewrite anything they could not follow.
