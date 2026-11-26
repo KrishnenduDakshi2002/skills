@@ -37,7 +37,7 @@ node <skill-dir>/scripts/check-story.mjs <draft.md> --title "<title>"
 
 - Fix every `ERROR` and rerun until it reports `OK`. Treat each `warn` as a decision to review.
 - The checker flags likely code names. When it flags a real product or brand name, rerun with `--allow Name`; never use `--allow` for an identifier.
-- Charts are parsed with the real Mermaid parser. Install it once per machine with `npm ci --prefix <skill-dir>/scripts` (needs Node 22.13 or later and network for the install; checks run offline afterwards). Exit code 2 means it could not check.
+- Charts are parsed with the real Mermaid parser. The checker installs it into its own folder on first use (needs Node 22.13 or later, and network that once; checks run offline afterwards). Exit code 2 means it could not check: the output says why.
 - Never publish a chart that does not parse or was not parsed. Fix it, or fall back to layout (c).
 - The checker cannot tell whether a story is true. Steps 5 to 7 above stay your job.
 
