@@ -3,6 +3,8 @@
 // Usage: node check-story.mjs <body.md | -> [--title "<title>"] [--allow Word,Word]
 // Exit codes: 0 no errors (warnings may remain), 1 rules broken, 2 could not check.
 
+import { spawnSync } from "node:child_process";
+import { existsSync, mkdirSync, rmSync } from "node:fs";
 import { readFile } from "node:fs/promises";
 import path from "node:path";
 import process from "node:process";
@@ -355,7 +357,43 @@ function checkChartSource(report, chart, where) {
   });
 }
 
+/**
+ * Installs the pinned parser into this folder the first time it is needed, as the skills CLI
+ * copies the files but installs nothing. A lock directory keeps two checks from installing at once.
+ */
+function installParser(scriptsDir) {
+  if (existsSync(path.join(scriptsDir, "node_modules", "mermaid", "package.json"))) return null;
+  const lock = path.join(scriptsDir, ".installing");
+  const deadline = Date.now() + 5 * 60_000;
+  for (;;) {
+    try {
+      mkdirSync(lock);
+      break;
+    } catch {
+      if (Date.now() > deadline) return "another install of the parser did not finish";
+      Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, 500);
+      if (existsSync(path.join(scriptsDir, "node_modules", "mermaid", "package.json"))) return null;
+    }
+  }
+  try {
+    console.error("Installing the Mermaid parser once (needs network this time only)...");
+    const npm = process.platform === "win32" ? "npm.cmd" : "npm";
+    const result = spawnSync(npm, ["ci", "--prefix", scriptsDir, "--no-audit", "--no-fund", "--silent"], {
+      stdio: ["ignore", "ignore", "pipe"],
+      encoding: "utf8",
+    });
+    if (result.error) return `npm could not run: ${result.error.message}`;
+    if (result.status !== 0) return `npm ci failed: ${(result.stderr || "").trim().split("\n").slice(-3).join(" ")}`;
+    return null;
+  } finally {
+    rmSync(lock, { recursive: true, force: true });
+  }
+}
+
 async function loadParser() {
+  const scriptsDir = path.dirname(fileURLToPath(import.meta.url));
+  const failed = installParser(scriptsDir);
+  if (failed) return { missing: new Error(failed) };
   try {
     const { JSDOM } = await import("jsdom");
     const { window } = new JSDOM("<!doctype html><html><body></body></html>");
@@ -477,7 +515,7 @@ async function main() {
       if (mermaid.missing) {
         const scriptsDir = path.dirname(fileURLToPath(import.meta.url));
         couldNotCheck =
-          `The Mermaid parser is not installed, so the charts were not parsed. Install it once with:\n` +
+          `The Mermaid parser could not be installed (${mermaid.missing.message}), so the charts were not parsed. Install it with:\n` +
           `  npm ci --prefix "${scriptsDir}"\n` +
           `If it cannot be installed, publish layout (c) instead of an unparsed chart.`;
       } else {
