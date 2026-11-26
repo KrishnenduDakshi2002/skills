@@ -10,7 +10,7 @@ async function findSkillFiles(directory) {
   const entries = await readdir(directory, { withFileTypes: true });
   const nested = await Promise.all(
     entries
-      .filter((entry) => !entry.name.startsWith("."))
+      .filter((entry) => !entry.name.startsWith(".") && entry.name !== "node_modules")
       .map(async (entry) => {
         const entryPath = path.join(directory, entry.name);
         if (entry.isDirectory()) return findSkillFiles(entryPath);
