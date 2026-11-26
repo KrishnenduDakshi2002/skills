@@ -51,7 +51,9 @@ Each one line, at most 18 words, all three always present:
 - **Who notices:** who sees a difference, and what.
 
 ### Listen
-The whole change as spoken English, at most 60 words, no symbols, no code names.
+The whole change as spoken English, at most 105 words (about 40 seconds aloud), no symbols, no code names.
+
+A change that cannot be told in 40 seconds is too big for one pull request. Split it into smaller pull requests with more targeted changes, each with its own story; never cut what the reader needs or go over the cap to make it fit.
 
 ### Never, anywhere visible
 Function, class, method, variable, enum, file or path names; formulas; test counts; commands run; "decide" questions. Allowed: what a person sees or types (a button label, a message text, an API route, a setting name). Nothing about tests unless something failed or was not tested — then say so in plain words in the most fitting cell.

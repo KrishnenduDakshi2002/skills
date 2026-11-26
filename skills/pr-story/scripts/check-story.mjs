@@ -25,7 +25,7 @@ const LIMITS = {
   groupItems: 4,
   itemWords: 10,
   cellWords: 18,
-  listenWords: 60,
+  listenWords: 105,
   edgeLabelWords: 4,
 };
 // Product and brand names that look like code identifiers. Extend per run with --allow.
@@ -321,7 +321,14 @@ function checkListen(report, blocks, allowed) {
     report.error("Listen", "has no spoken text");
     return;
   }
-  checkWordCap(report, "Listen", text, LIMITS.listenWords, "spoken version");
+  const spoken = countWords(text);
+  if (spoken > LIMITS.listenWords) {
+    report.error(
+      "Listen",
+      `spoken version has ${spoken} words; the cap is ${LIMITS.listenWords} (about 40 seconds aloud). ` +
+        "A change that needs more is too big for one pull request: split it into smaller, targeted ones.",
+    );
+  }
   const symbols = [...new Set(text.match(STORY_SYMBOLS) ?? [])];
   if (symbols.length > 0) {
     report.error("Listen", `contains ${symbols.map((symbol) => `"${symbol}"`).join(" ")}; write it as spoken words`);
