@@ -1,6 +1,6 @@
 interface:
   display_name: "PR Review Loop"
-  short_description: "Resolve stack feedback until Codex reviews clean"
-  default_prompt: "Use $pr-review-loop on the current PR stack, applying my run conditions and tailored Codex review instructions until every current head receives a clean review."
+  short_description: "Triage PR review feedback to a merge verdict"
+  default_prompt: "Use $pr-review-loop on the current PR stack, applying my run conditions, until no blocking finding remains and you can tell me whether it is ready to merge."
 policy:
   allow_implicit_invocation: false
