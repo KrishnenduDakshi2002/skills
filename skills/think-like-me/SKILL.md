@@ -1,6 +1,6 @@
 ---
 name: think-like-me
-description: Apply the author's coding practices for maintainable architecture, DRY ownership, derived types, data-driven behavior, consistent naming, and readable layout. Use whenever writing, modifying, or refactoring code in any language, before writing the first line, or when the user says "think like me", "my style", "follow my practices", or complains about duplication, hard-coded behavior, maintainability, or congested code.
+description: Apply the author's coding practices for maintainable architecture, DRY ownership, derived types, data-driven behavior, reviewable code, precise naming, purposeful comments, and readable layout. Use whenever writing, modifying, or refactoring code in any language, before writing the first line, or when the user says "think like me", "my style", "follow my practices", or complains about duplication, hard-coded behavior, maintainability, congested or hard-to-review code, vague names, or noisy comments.
 ---
 
 # Think Like Me
@@ -150,11 +150,59 @@ export async function publishPost(postId: string, actor: User, deps: Deps) {
 
 Same behavior, same line budget in spirit — but the guards, the build, the persist, and the result are now four visible paragraphs, and the authorization rule has a name.
 
+## Readability: write for the reviewer
+
+The first reader of my code is a reviewer looking at a diff, not someone with jump-to-definition and an afternoon to spare. If the code only makes sense after reading every helper's body, it is not finished.
+
+- **Read top-down.** Put the exported entry point first and its helpers below it, in the order it calls them, unless the language or the repo's convention requires otherwise. The reader should meet the story before the details.
+- **One level of abstraction per function.** A function either orchestrates named steps or implements one detail, not both. If a high-level flow suddenly drops into string slicing or index math, extract that detail behind a name.
+- **The call site is the documentation.** A reader should be able to predict what a call does and returns from its name and arguments alone. Replace positional booleans and bare literals with named options or constants: `render({ compact: true })`, not `render(true)`; `MAX_RETRIES`, not `3`.
+- **Shallow and narrow.** Keep nesting to two levels inside a function; flatten deeper code with early returns or extraction. Past three parameters, take one named context or options object. Return a named object, not a tuple like `[attendees, session]`.
+- **No clever compression.** Break long `reduce` chains, nested callbacks, dense regexes, and stacked operators into named intermediate values. Put each `await` into a named local before building a return value; never nest it inside an object literal or a function argument. A few extra lines with good names beat one line the reviewer has to execute in their head.
+- **Real units, not inline closures.** Do not grow a function or component body with locally defined render helpers, mini-functions, or `(() => { … })()` blocks. Extract a real component, hook, or module-level function with its own name.
+- **Every state is explicit.** Never let `undefined` carry meaning in a boolean or a value (`hasAttended: undefined` meaning "not final yet"). Model the extra state with a union or a separate field so a reviewer can see it.
+- **Diff-friendly text.** Write long prompts, messages, and lists one item per line, so editing one step changes one line instead of rewriting a 1,000-character paragraph.
+- **Keep the diff about the task.** Cleanup inside the task's scope is welcome. Unrelated renames, reformatting, and reordering are noise that hides the real change. When a refactor is needed, keep it separable from the behavior change so each can be reviewed on its own.
+- **Make new code look native.** Match the surrounding file's patterns (how errors are raised, how modules export, how similar functions are named and ordered) so the reviewer only has to judge what is genuinely new.
+
 ## Naming
 
-- Name variables, files, functions, and modules for the bigger picture, not the immediate small task. A later addition that belongs in this module should feel like it belongs — never repelled by a name scoped to the original narrow use case.
-- Use the established domain vocabulary consistently across types, functions, fields, and files. Do not invent a synonym for an existing concept or give different concepts the same name.
-- Name shared code for the responsibility it actually owns. Avoid vague buckets such as `utils`, `common`, or `manager`, and avoid pretending a feature-specific helper is universal. Follow established repository and language conventions; use the defaults below where none exist.
+A name is the cheapest documentation I have and the first thing a reviewer reads. If a name needs a comment to explain it, the name is wrong.
+
+- **One concept, one name, end to end.** The biggest naming failure is one idea wearing several names: participants, attendance, and attendees for one thing, or task and issue, or cohort and group and plan. Pick the domain noun once and carry it through the route, service, types, DTOs, UI keys, test ids, and comments. Never reuse one name for two concepts. When you rename, finish the rename everywhere: keys, test ids, helpers, and comments.
+- **Name for the bigger picture.** Name variables, files, functions, and modules for where the code is going, not only the small task in front of you. A later addition that belongs in this module should feel at home there, not be pushed out by a name scoped to the original narrow use case.
+- **Name the role, not the UI copy.** Components, files, and functions describe their responsibility (`ConversionPlanApprovalCard`, `CurrentPlanSummary`), not on-screen text or prose (`PlanForYourOk`, `ThisPlan`, `conversion-words.ts`). The copy will change; the role will not.
+- **Name the role, not the type or the mechanics.** `activeSubscribers`, not `filteredList`; `invoiceTotal`, not `sum`; `retryDelayMs`, not `num`. Do not encode the type (`userArray`, `strName`) or the history (`newUser`, `user2`, `updatedData`, `finalResult`, `tempFix`).
+- **No placeholder names.** `data`, `info`, `item`, `obj`, `result`, `res`, `temp`, `val`, `payload`, `handle`, `process`, and `doStuff` are placeholders, not names. Allow one only in a scope of a few lines where its meaning is obvious, such as the singular of the collection being mapped: `users.map((user) => …)`.
+- **Scope sets length.** A three-line loop index can be `i`; an exported function must be fully specific. The wider the visibility, the more precise the name.
+- **No private abbreviations.** Spell words out: `message`, not `msg`; `previous`, not `prev`, unless the codebase has already standardized the short form. Keep universally known abbreviations such as `id`, `url`, `html`, and `api`.
+- **Functions say everything they do.** Use a verb plus an object that describes the outcome: `archiveExpiredSessions`, not `cleanup`. If an honest name needs "And", split the function. Make side effects visible in the verb: `get`, `compute`, `to`, `build` for pure work; `fetch`, `load`, `save`, `send`, `delete` for I/O. Never give a function a noun or preposition name (`currentState`, `titlesOf`, `withoutCohorts`), least of all one that queries or writes. An `assert` function only throws; if it also returns something, name it for what it returns.
+- **Booleans read as yes/no questions.** `isActive`, `hasAccess`, `canEdit`, `shouldRetry`. Always use the positive form: `isEnabled`, never `isNotDisabled`. Name it for what it actually decides: `isConversionPlanApproval`, not `isPlan`.
+- **The name matches what it holds.** A count is `memberCount`, not `members` or `pastMembers`; an id is `templateId`, not `launch`; a collection is plural (`orders`); a lookup is `xById` or `xByKey`. Put units in the name: `timeoutMs`, `priceInCents`, `directRevenueInr`, `createdAtIso`. If a value's type changes, rename it in the same change.
+- **Name pairs symmetrically.** `open`/`close`, `start`/`stop`, `min`/`max`, `source`/`target`. Do not use `start`/`end` in one place and `begin`/`finish` in another.
+- **Name shared code for what it owns.** Avoid vague buckets such as `utils`, `common`, `helpers`, or `manager`, and avoid pretending a feature-specific helper is universal.
+
+Before:
+
+```ts
+const data = await get(id);
+const res = data.items.filter((x) => x.s === "A" && x.exp > Date.now());
+if (res.length && flag) process(res);
+```
+
+After:
+
+```ts
+const subscription = await fetchSubscription(subscriptionId);
+const renewableSeats = subscription.seats.filter(isRenewable);
+
+if (renewableSeats.length > 0 && autoRenewEnabled) {
+  await renewSeats(renewableSeats);
+}
+```
+
+Follow the repository's and language's naming conventions; where none exist, use these defaults:
+
 - Files: `lowercase-with-dashes`
 - Functions: verb phrases (`getUser`, `validateEmail`)
 - Predicates: `isValid`, `hasPermission`, `canAccess`
@@ -162,8 +210,41 @@ Same behavior, same line budget in spirit — but the guards, the build, the per
 
 ## Comments
 
-- Comments are a special thing, not a routine one. The variables, function names, logic, and architecture should tell the whole story — comments must never be what guides the reader through the code.
-- Write a comment only when the behavior cannot be fully expressed through code, syntax, and naming — or when a function carries a deeper meaning that is genuinely easier to follow in prose. In that case write it properly: the reasoning behind the behavior and how the code is meant to be used.
+Comments are a special thing, not a routine one. Names, types, and structure must tell the story. A comment that walks the reader through the code means the code failed to.
+
+- **Fix the code before commenting on it.** When something seems to need a comment, first try a better name, an extracted function or named predicate, a named constant, or a stricter type. Comment only what is still unclear after that.
+- **Comment the why, never the what.** Write a comment only for what code cannot express: the reason for a non-obvious choice, an invariant or constraint the caller must respect, a workaround (with its issue link), the format or units of external data, non-obvious arithmetic (a `- 1` boundary, a clamp, a `?? 0` default), or why the obvious approach was rejected. The best comments tie the code to an outside fact: "Zoom recycles meeting numbers, so a session UUID is trusted only when…".
+- **Write plainly.** The most common failure is compressed, literary prose that has to be decoded ("a repeat answers the first launch"; "the whole of it as the agent wrote it"). Use plain subject–verb–object sentences, one idea per sentence, with ordinary words in their ordinary meaning (`parses` or `is valid`, not `reads`). Say what the code does before you get to the edge cases.
+- **Use the code's vocabulary.** Refer to concepts exactly as the code names them: `cohort` if the code says cohort, not "group"; `CONVERSION_AGENT`, not a persona name. A comment that uses different words from the code adds a second vocabulary for the reader to learn.
+- **Document contracts at boundaries.** An exported function in shared code may carry a short doc comment when its contract is not obvious from the signature: what it guarantees, what it throws, what side effects it has. Skip doc comments that only repeat the name and parameter types.
+- **Never write these:**
+  - Narration that restates the line below it (`// loop through users`, `// return the result`).
+  - Section banners inside a function (`// --- validation ---`). Use a blank line, or extract a function.
+  - Change history or notes to the reviewer (`// updated to use the new API`, `// fixed`, `// NEW`, `// as requested`). These belong in the commit message or the PR.
+  - References to PR numbers, other services' internals, or other screens' layouts (`backend #6765's learning_buddy`, `so the column stays short beside For you`). These go stale the moment that other place changes.
+  - The same comment pasted at several call sites. If a rule needs explaining everywhere, enforce it in one named function (`assertSessionInCall`) and explain it there once.
+  - Commented-out code. Version control remembers it.
+  - A bare `TODO` for work I could finish now. Finish it. A real out-of-scope follow-up gets a specific note and a reference.
+- **Write it properly when you do.** Use full sentences in the present tense, describing the code as it is now. Put the comment directly above what it explains and keep it short. A doc comment on a constant or object must describe all of it, not just the first field. Update or delete the comment in the same change that alters the behavior.
+
+Before:
+
+```ts
+// Check if user is admin
+if (user.role === "admin" || user.role === "owner") {
+  // Wait 2 seconds
+  await sleep(2000); // NEW: added delay
+}
+```
+
+After:
+
+```ts
+if (isWorkspaceManager(user)) {
+  // The billing provider rejects plan changes made within ~2s of a seat update.
+  await sleep(BILLING_SETTLE_DELAY_MS);
+}
+```
 
 ## Before finishing
 
@@ -171,6 +252,9 @@ Same behavior, same line budget in spirit — but the guards, the build, the per
 - Check added types, literals, mappings, and derived state against their owners. Confirm the affected consumers actually use the shared source and that required cases cannot silently disappear behind a fallback or cast.
 - Ask: could I easily test this? If not, restructure until you could — untestable code is a design smell even when it works.
 - Skim the diff with unfocused eyes: can you see the paragraphs? If any function reads as one dense block, it is not finished — go back to the layout rules.
+- **Read only the names.** Go through the diff's identifiers without reading the bodies: functions, variables, parameters, files. If you cannot predict what each one does or holds, rename it before presenting. Confirm that each concept has exactly one name across the diff, including UI keys, test ids, and comments.
+- **Audit every comment you added.** Delete narration, change history, notes to the reviewer, and anything a rename or extraction could replace. Read the rest aloud: if a sentence needs decoding, rewrite it plainly. Keep only the why.
+- **Hunt stale comments.** Re-read the existing comments near every line you changed or removed, and fix any that describe behavior that no longer exists.
 - Ask what a demanding reviewer would say: "this works, but it makes the surrounding code more spaghetti", "this abstraction seems unnecessary", "this looks like a bespoke helper for something we already have". If any of those land, restructure before presenting.
 - Run the narrowest relevant check the repo provides (typecheck, lint, focused tests) and report results honestly.
 - Re-read the diff as another developer would: every line should look like it always belonged there, and they should be able to build on it without reading its internals.
